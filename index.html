@@ -3,191 +3,272 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Агрегатор опытов — качество плодоовощной продукции</title>
+<title>Качество плодов · МАГ-8</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
+/* Layout: инструментальная светлая тема, шапка-навигация + разделы по культурам.
+   Один интерактивный акцент (петроль), цвета культур — только маркеры разделов. */
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#F4F4EF; --surface:#fff; --border:#E3E3DC;
-  --ink:#1A1A2E; --muted:#6B7280; --faint:#9AA0A6;
-  --tomato:#D62828; --avocado:#556B2F; --apple:#C1121F;
-  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+  --bg:#ECEEF1; --surface:#FFFFFF; --panel:#F6F7F9; --line:#DCE0E5;
+  --ink:#17222E; --muted:#5B6672; --faint:#939BA5;
+  --accent:#1F5673; --accent-soft:#E6EEF2;
+  --tomato:#C4362F; --avocado:#5B7A34; --apple:#B5322B;
+  --good:#2E7D46; --good-soft:#E7F2EB;
+  --warn:#B87A12; --warn-soft:#FBF1DA;
+  --crit:#C2402F; --crit-soft:#FBE7E3;
   --c1:#0072B2; --c2:#D55E00; --c3:#009E73; --c4:#CC79A7;
-  --r:12px; --sh:0 1px 3px rgba(0,0,0,.07);
+  --r:14px; --sh:0 1px 2px rgba(20,30,45,.06),0 1px 3px rgba(20,30,45,.04);
+  --sans:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  --mono:'IBM Plex Mono','SF Mono',Menlo,monospace;
 }
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-     background:var(--bg);color:var(--ink);line-height:1.55;font-size:14px}
-.wrap{max-width:1360px;margin:0 auto;padding:22px}
+html{color-scheme:light}
+body{font-family:var(--sans);background:var(--bg);color:var(--ink);
+     line-height:1.55;font-size:14px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 22px 60px}
+abbr{text-decoration:none;border-bottom:1px dotted var(--faint);cursor:help}
+h1,h2,h3{text-wrap:balance;letter-spacing:-.01em}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
 
-/* ── top nav ── */
-.topnav{background:var(--ink);color:#fff;padding:0 24px;display:flex;align-items:center;gap:4px;position:sticky;top:0;z-index:50}
-.topnav .brand{font-weight:700;font-size:15px;padding:16px 16px 16px 0;letter-spacing:-.2px}
-.topnav button{background:none;border:none;color:#cfcfcf;font-size:14px;font-weight:600;
-  padding:16px 18px;cursor:pointer;border-bottom:3px solid transparent;transition:.15s}
+/* ── шапка ── */
+.topnav{background:var(--ink);color:#fff;position:sticky;top:0;z-index:50;
+  box-shadow:0 1px 0 rgba(0,0,0,.2)}
+.topnav-in{max-width:1240px;margin:0 auto;padding:0 22px;display:flex;align-items:center;
+  gap:2px;flex-wrap:wrap}
+.topnav .brand{display:flex;flex-direction:column;padding:12px 24px 12px 0;margin-right:8px}
+.topnav .brand b{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.topnav .brand span{font-size:11px;color:#9AA6B2;font-weight:400;letter-spacing:.02em}
+.topnav button{background:none;border:none;color:#B7C0CA;font-family:var(--sans);
+  font-size:14px;font-weight:500;padding:16px 16px;cursor:pointer;
+  border-bottom:2px solid transparent;transition:.15s}
 .topnav button:hover{color:#fff}
-.topnav button.active{color:#fff;border-bottom-color:#fff}
+.topnav button.active{color:#fff;border-bottom-color:var(--c1)}
 
-/* ── landing ── */
-.landing{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px}
+/* ── обложка ── */
+.hero{margin:8px 0 34px;max-width:760px}
+.hero .eyebrow{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.14em;
+  color:var(--accent);margin-bottom:12px}
+.hero h1{font-size:30px;font-weight:700;line-height:1.2}
+.hero p{color:var(--muted);margin-top:12px;font-size:15px;max-width:660px}
+.landing{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 @media(max-width:820px){.landing{grid-template-columns:1fr}}
-.pcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
-  padding:28px;cursor:pointer;transition:.18s;box-shadow:var(--sh);border-top:5px solid var(--border)}
-.pcard:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
-.pcard.tomato{border-top-color:var(--tomato)}
-.pcard.avocado{border-top-color:var(--avocado)}
-.pcard.apple{border-top-color:var(--apple)}
-.pcard .emoji{font-size:44px;line-height:1}
-.pcard h2{font-size:20px;margin:12px 0 6px}
-.pcard p{color:var(--muted);font-size:13px;margin-bottom:10px}
-.pcard .tag{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;
-  letter-spacing:.4px;padding:3px 9px;border-radius:12px;background:#EEF2F0;color:var(--muted)}
-.landing-head{text-align:center;margin-top:48px}
-.landing-head h1{font-size:28px;letter-spacing:-.5px}
-.landing-head p{color:var(--muted);margin-top:8px;max-width:640px;margin-left:auto;margin-right:auto}
+.pcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:24px;cursor:pointer;transition:.18s;box-shadow:var(--sh);position:relative;overflow:hidden}
+.pcard::before{content:"";position:absolute;top:0;left:0;right:0;height:4px;background:var(--line)}
+.pcard.tomato::before{background:var(--tomato)}
+.pcard.avocado::before{background:var(--avocado)}
+.pcard.apple::before{background:var(--apple)}
+.pcard:hover{transform:translateY(-3px);box-shadow:0 10px 28px rgba(20,30,45,.12);border-color:#C6CCD3}
+.pcard .emoji{font-size:40px;line-height:1}
+.pcard h2{font-size:19px;font-weight:600;margin:14px 0 8px}
+.pcard p{color:var(--muted);font-size:13px;margin-bottom:14px;line-height:1.5}
+.pcard .tag{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.02em;
+  padding:4px 10px;border-radius:20px;background:var(--panel);color:var(--muted);border:1px solid var(--line)}
+.pcard .go{position:absolute;bottom:20px;right:22px;color:var(--faint);font-size:18px;transition:.18s}
+.pcard:hover .go{color:var(--accent);transform:translateX(3px)}
+.note{margin-top:26px;padding:16px 20px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);font-size:13px;color:var(--muted);box-shadow:var(--sh)}
+.note b{color:var(--ink);font-weight:600}
 
-/* ── generic ── */
+/* ── разделы ── */
 .view{display:none}
-.view.active{display:block}
-.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
-  padding:20px 24px;margin-bottom:20px;box-shadow:var(--sh)}
-.panel-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;
-  color:var(--muted);margin-bottom:16px}
-.ctrl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;align-items:end}
-label.lbl{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px;
-  text-transform:uppercase;letter-spacing:.4px}
-select,input[type=number]{width:100%;padding:9px 11px;border:1px solid var(--border);
-  border-radius:6px;font-size:14px;background:var(--bg);color:var(--ink)}
-select:focus,input:focus{outline:none;border-color:var(--avocado)}
-.btn{padding:10px 24px;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;
-  cursor:pointer;width:100%;background:var(--ink)}
-.btn:hover{opacity:.9}
-.btn:disabled{opacity:.5;cursor:not-allowed}
+.view.active{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.view-head{margin:4px 0 22px}
+.view-head h1{font-size:24px;font-weight:700}
+.view-head .lead{color:var(--muted);margin-top:6px;font-size:14px;max-width:720px}
+.view-head .src{margin-top:8px;font-size:12px;color:var(--faint)}
 
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:20px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:22px 24px;margin-bottom:20px;box-shadow:var(--sh)}
+.panel-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;
+  color:var(--muted);margin-bottom:16px}
+.ctrl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;align-items:end}
+label.lbl{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:6px}
+select,input[type=number]{width:100%;padding:10px 12px;border:1px solid var(--line);
+  border-radius:8px;font-size:14px;font-family:var(--sans);background:var(--panel);color:var(--ink)}
+select:focus,input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.btn{padding:11px 24px;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;
+  font-family:var(--sans);cursor:pointer;width:100%;background:var(--accent);transition:.15s}
+.btn:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.field-hint{font-size:11px;color:var(--faint);margin-top:5px}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:20px}
 @media(max-width:880px){.g2,.g3{grid-template-columns:1fr}}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--sh)}
-.card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:20px;box-shadow:var(--sh)}
+.card-title{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:3px}
+.card-sub{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.45}
 .chart-box{position:relative;height:250px}
 
 .tbl{width:100%;border-collapse:collapse;font-size:13px}
-.tbl th{text-align:left;padding:8px 10px;font-weight:600;border-bottom:2px solid var(--border);
-  font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:.3px}
-.tbl td{padding:7px 10px;border-bottom:1px solid var(--border)}
+.tbl th{text-align:left;padding:9px 12px;font-weight:600;border-bottom:1.5px solid var(--line);
+  font-size:12px;color:var(--muted);white-space:nowrap}
+.tbl td{padding:8px 12px;border-bottom:1px solid var(--line)}
 .tbl tr:last-child td{border-bottom:none}
-.num{text-align:right;font-variant-numeric:tabular-nums;font-family:'SF Mono',Menlo,monospace;font-size:12px}
-.tbl tr.hl td{background:#F0FAF4}
+.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12.5px}
+.tbl tr.hl td{background:var(--accent-soft)}
+.tbl tr.hl td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
 
-/* status card */
-.status{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
-  padding:20px 24px;margin-bottom:20px;border-left:5px solid var(--good);box-shadow:var(--sh)}
-.status.warn{border-left-color:var(--warn)} .status.bad{border-left-color:var(--crit)}
-.status-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
-.status h2{font-size:20px} .status .rec{color:var(--muted);font-size:13px;margin-top:3px}
-.badges{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
-.bdg{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;
-  font-size:12px;font-weight:600;background:#EDF7F0;color:var(--avocado)}
-.bdg.amber{background:#FEF3C7;color:#92400E} .bdg.red{background:#FEE2E2;color:var(--crit)}
+/* статус-карточка */
+.status{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:22px 24px;margin-bottom:20px;border-left:4px solid var(--good);box-shadow:var(--sh)}
+.status.warn{border-left-color:var(--warn)}
+.status.bad{border-left-color:var(--crit)}
+.status-top{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap}
+.status h2{font-size:20px;font-weight:600}
+.status .rec{color:var(--muted);font-size:13.5px;margin-top:4px;max-width:520px}
+.badges{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.bdg{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;
+  font-size:12.5px;font-weight:500;background:var(--panel);color:var(--ink);border:1px solid var(--line)}
+.bdg b{font-family:var(--mono);font-weight:500}
+.bdg.ok{background:var(--good-soft);border-color:transparent;color:var(--good)}
+.bdg.amber{background:var(--warn-soft);border-color:transparent;color:var(--warn)}
+.bdg.red{background:var(--crit-soft);border-color:transparent;color:var(--crit)}
 
-/* tomato icon */
-.tomato-wrap{display:flex;flex-direction:column;align-items:center;gap:4px}
-.tomato-svg{width:82px;height:82px;transition:.5s}
-.tomato-label{font-size:12px;font-weight:700}
+/* иконка томата */
+.tomato-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:110px}
+.tomato-svg{width:84px;height:84px;transition:.5s}
+.tomato-label{font-size:12px;font-weight:600}
+.tomato-cap{font-size:11px;color:var(--faint)}
 
-/* slider */
-.slider-wrap{grid-column:1/-1}
-.slider-row{display:flex;align-items:center;gap:14px;margin-top:4px}
-input[type=range]{flex:1;accent-color:var(--avocado);height:6px;cursor:pointer}
-.day-badge{background:var(--ink);color:#fff;border-radius:20px;padding:4px 14px;font-size:13px;font-weight:600}
+/* слайдер суток */
+.slider-wrap{grid-column:1/-1;margin-top:2px}
+.slider-row{display:flex;align-items:center;gap:16px;margin-top:6px}
+.slider-track{flex:1;position:relative}
+input[type=range]{width:100%;accent-color:var(--accent);height:6px;cursor:pointer}
+.slider-scale{display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--faint)}
+.slider-scale span{position:relative}
+.day-badge{background:var(--accent);color:#fff;border-radius:8px;padding:6px 16px;
+  font-size:14px;font-weight:600;font-family:var(--mono);white-space:nowrap}
 
-/* temp pills (avocado) */
+/* температурные кнопки (авокадо) */
 .pills{display:flex;gap:8px;flex-wrap:wrap}
-.pill{padding:9px 18px;border:1px solid var(--border);border-radius:8px;background:var(--bg);
-  cursor:pointer;font-weight:600;font-size:14px;transition:.15s}
+.pill{padding:10px 18px;border:1px solid var(--line);border-radius:9px;background:var(--panel);
+  cursor:pointer;font-weight:600;font-size:14px;font-family:var(--mono);transition:.15s;color:var(--ink)}
+.pill:hover{border-color:var(--avocado)}
 .pill.active{background:var(--avocado);color:#fff;border-color:var(--avocado)}
 
-/* ripening scale */
-.scale-row{display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:center;
-  padding:8px 10px;border-bottom:1px solid var(--border)}
+/* шкала дозревания */
+.scale-row{display:grid;grid-template-columns:40px 1fr;gap:14px;align-items:start;
+  padding:11px 12px;border-bottom:1px solid var(--line)}
 .scale-row:last-child{border:none}
-.scale-row.cur{background:#F0FAF4;border-radius:6px}
-.scale-badge{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  font-weight:700;color:#fff;font-size:15px}
-.scale-meta{font-size:12px;color:var(--muted)}
-.scale-desc{font-size:13px}
+.scale-row.cur{background:var(--good-soft);border-radius:8px;border-bottom-color:transparent}
+.scale-badge{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;
+  justify-content:center;font-weight:600;color:#fff;font-size:15px;font-family:var(--mono)}
+.scale-meta{font-size:11.5px;color:var(--muted);margin-top:3px;font-family:var(--mono)}
+.scale-desc{font-size:13px;line-height:1.4}
 
-/* index result cards */
+/* индексы (яблоки) */
 .idx-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 @media(max-width:820px){.idx-grid{grid-template-columns:1fr 1fr}}
-.idx-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
-.idx-card .name{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
-.idx-card .val{font-size:26px;font-weight:700;margin:6px 0;font-variant-numeric:tabular-nums}
-.idx-card .form{font-size:11px;color:var(--faint)}
-.verdict{margin-top:16px;padding:12px 16px;border-radius:8px;background:#EDF7F0;color:var(--avocado);
-  font-weight:600;font-size:14px}
+.idx-card{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:18px 16px;text-align:center}
+.idx-card .name{font-size:13px;font-weight:600;color:var(--ink)}
+.idx-card .val{font-size:28px;font-weight:700;margin:8px 0 6px;font-family:var(--mono);color:var(--accent)}
+.idx-card .form{font-size:11px;color:var(--faint);font-family:var(--mono)}
+.verdict{margin-top:18px;padding:14px 18px;border-radius:10px;background:var(--good-soft);
+  color:var(--good);font-weight:600;font-size:14px}
+.legend-line{margin-top:14px;font-size:12px;color:var(--muted);line-height:1.6}
+.legend-line b{color:var(--ink);font-weight:600;font-family:var(--mono)}
 
-.hint{font-size:12px;color:var(--muted);margin-top:10px}
-.warn-item{padding:8px 12px;border-radius:6px;background:#FEF3C7;color:#78350F;font-size:13px;
-  border-left:3px solid var(--warn);margin-bottom:6px}
-.source{font-size:11px;color:var(--faint);margin-top:6px}
+.warn-item{padding:10px 14px;border-radius:8px;background:var(--warn-soft);color:#6B4A0A;
+  font-size:13px;border-left:3px solid var(--warn);margin-bottom:8px}
+.source{font-size:11.5px;color:var(--faint);margin-top:14px;line-height:1.5}
+.caption{font-size:12px;color:var(--muted);margin-top:12px;line-height:1.5}
 </style>
 </head>
 <body>
 
 <div class="topnav">
-  <div class="brand">Качество плодоовощной продукции</div>
-  <button id="nav-home" class="active" onclick="show('home')">Обзор</button>
-  <button id="nav-tomato" onclick="show('tomato')">Томаты</button>
-  <button id="nav-avocado" onclick="show('avocado')">Авокадо</button>
-  <button id="nav-apple" onclick="show('apple')">Яблоки</button>
+  <div class="topnav-in">
+    <div class="brand"><b>Качество плодов</b><span>электронный нос «Нос-диагност МАГ-8»</span></div>
+    <button id="nav-home" class="active" onclick="show('home')">Обзор</button>
+    <button id="nav-tomato" onclick="show('tomato')">Томаты</button>
+    <button id="nav-avocado" onclick="show('avocado')">Авокадо</button>
+    <button id="nav-apple" onclick="show('apple')">Яблоки</button>
+  </div>
 </div>
 
 <div class="wrap">
 
-<!-- ═══════════ LANDING ═══════════ -->
+<!-- ═══════════ ОБЗОР ═══════════ -->
 <div id="view-home" class="view active">
-  <div class="landing-head">
-    <h1>Агрегатор опытов по качеству плодов</h1>
-    <p>Визуализация результатов исследований температурных режимов и физиологического состояния плодов в цепи поставок. Данные РЭУ им. Г.В. Плеханова, прибор «Нос-диагност МАГ-8».</p>
+  <div class="hero">
+    <div class="eyebrow">Агрегатор опытов · РЭУ им. Г. В. Плеханова</div>
+    <h1>Оценка состояния плодов по цепи поставок</h1>
+    <p>Как температура на каждом этапе — от отгрузки до полки магазина — влияет на зрелость,
+       химию и аромат плодов. Аромат снимали электронным носом «МАГ-8»: восемь пьезосенсоров
+       фиксируют «отпечаток» летучих веществ. Выберите культуру.</p>
   </div>
+
   <div class="landing">
     <div class="pcard tomato" onclick="show('tomato')">
       <div class="emoji">🍅</div>
       <h2>Томаты</h2>
-      <p>Модель по данным электронного носа: химия, e-nose, цвет a*, органолептика, паспорт качества по цепи поставок.</p>
-      <span class="tag">Сорта Фламенко · Черри</span>
+      <p>Прогнозная модель по электронному носу: химия, сигнал сенсоров, цвет кожуры,
+         органолептика и паспорт качества на выбранные сутки хранения.</p>
+      <span class="tag">Фламенко · Черри</span>
+      <span class="go">→</span>
     </div>
     <div class="pcard avocado" onclick="show('avocado')">
       <div class="emoji">🥑</div>
       <h2>Авокадо</h2>
-      <p>Справочник по НИР: шкала дозревания (8 стадий) и маркеры по температурам хранения — РЦ, магазин, критические значения.</p>
+      <p>Справочник по научному отчёту: шкала дозревания из 8 стадий и маркеры зрелости
+         по температурам хранения — на распредцентре, в магазине и в критической точке.</p>
       <span class="tag">Сорт Хасс</span>
+      <span class="go">→</span>
     </div>
     <div class="pcard apple" onclick="show('apple')">
       <div class="emoji">🍏</div>
       <h2>Яблоки</h2>
-      <p>Калькулятор комплексных индексов зрелости: Штрайф, Ягер, FARS, Митин — по твёрдости, Brix и йодкрахмальной пробе.</p>
+      <p>Калькулятор комплексных индексов зрелости (Штрайф, Ягер, FARS, Митин)
+         по твёрдости мякоти, сахару и йодкрахмальной пробе.</p>
       <span class="tag">Айдаред · Голден Делишес</span>
+      <span class="go">→</span>
     </div>
+  </div>
+
+  <div class="note">
+    <b>Что такое электронный нос.</b> Прибор «Нос-диагност МАГ-8» — восемь пьезокварцевых
+    сенсоров (S1–S8), каждый чувствителен к своей группе летучих веществ. Вместе они дают
+    «ароматический отпечаток» плода; его площадь и форма меняются по мере созревания
+    и порчи. Единый прибор для всех трёх культур делает результаты сопоставимыми.
   </div>
 </div>
 
-<!-- ═══════════ TOMATO ═══════════ -->
+<!-- ═══════════ ТОМАТЫ ═══════════ -->
 <div id="view-tomato" class="view">
+  <div class="view-head">
+    <h1>Томаты — прогноз состояния</h1>
+    <div class="lead">Задайте температуры на этапах цепи поставок и сутки хранения —
+      модель покажет химию, сигнал электронного носа, цвет, органолептику и рекомендацию по реализации.</div>
+    <div class="src">Сорта Фламенко и Черри · опыт 1 (отгрузка 8–10 °C) · данные РЭУ им. Плеханова</div>
+  </div>
+
   <div class="panel">
-    <div class="panel-title">Параметры цепи поставок — томаты</div>
+    <div class="panel-title">Параметры цепи поставок</div>
     <div class="ctrl-grid">
       <div><label class="lbl">Сорт</label>
         <select id="t-variety"><option>Черри</option><option>Фламенко</option></select></div>
-      <div><label class="lbl">T° отгрузки</label><input type="number" id="t-gh" value="9" step="0.5"></div>
-      <div><label class="lbl">T° РЦ · 4 сут</label><input type="number" id="t-dc" value="8" step="0.5"></div>
-      <div><label class="lbl">T° транспорт · 3 сут</label><input type="number" id="t-tr" value="8" step="0.5"></div>
-      <div><label class="lbl">T° магазин</label><input type="number" id="t-st" value="25" step="0.5"></div>
+      <div><label class="lbl">Отгрузка с теплицы, °C</label><input type="number" id="t-gh" value="9" step="0.5"></div>
+      <div><label class="lbl"><abbr title="Распределительный центр">Распредцентр</abbr>, °C · 4 сут</label><input type="number" id="t-dc" value="8" step="0.5"></div>
+      <div><label class="lbl">Транспортировка, °C · 3 сут</label><input type="number" id="t-tr" value="8" step="0.5"></div>
+      <div><label class="lbl">Магазин, °C</label><input type="number" id="t-st" value="25" step="0.5"></div>
       <div><label class="lbl">&nbsp;</label><button class="btn" style="background:var(--tomato)" onclick="calcTomato()">Рассчитать</button></div>
       <div class="slider-wrap">
-        <label class="lbl">Сутки хранения: <span id="t-daylabel">7</span></label>
+        <label class="lbl">Сутки хранения — показать состояние на день <b class="mono" id="t-daylabel">7</b></label>
         <div class="slider-row">
-          <input type="range" id="t-slider" min="0" max="21" value="7" step="1" oninput="tSlide(this.value)">
+          <div class="slider-track">
+            <input type="range" id="t-slider" min="0" max="21" value="7" step="1" oninput="tSlide(this.value)">
+            <div class="slider-scale">
+              <span>Распредцентр 0–4</span><span>Транспорт 4–7</span><span>Магазин 7–14</span><span>Поздно 14–21</span>
+            </div>
+          </div>
           <span class="day-badge" id="t-daybadge">День 7</span>
         </div>
       </div>
@@ -207,53 +288,85 @@ input[type=range]{flex:1;accent-color:var(--avocado);height:6px;cursor:pointer}
             <path id="ti-mouth" d="M42 62 Q50 70 58 62" stroke="#1A1A2E" stroke-width="2" fill="none" stroke-linecap="round"/>
           </svg>
           <div class="tomato-label" id="t-iconlabel"></div>
+          <div class="tomato-cap">состояние на выбранный день</div>
         </div>
       </div>
       <div class="badges" id="t-badges"></div>
     </div>
 
     <div class="g2">
-      <div class="card"><div class="card-title">Химические показатели (% от исходного)</div><div class="chart-box"><canvas id="t-chem"></canvas></div></div>
-      <div class="card"><div class="card-title">Электронный нос — интегральный сигнал</div><div class="chart-box"><canvas id="t-enose"></canvas></div></div>
+      <div class="card">
+        <div class="card-title">Химический состав</div>
+        <div class="card-sub">Пигменты и нутриенты в % от исходного уровня (день 0 = 100 %). Падение — расход при созревании.</div>
+        <div class="chart-box"><canvas id="t-chem"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Электронный нос — интегральный сигнал</div>
+        <div class="card-sub">Суммарный отклик восьми сенсоров. V-образная кривая: спелость даёт пик, глубокая порча снова снижает сигнал.</div>
+        <div class="chart-box"><canvas id="t-enose"></canvas></div>
+      </div>
     </div>
 
     <div class="g3">
-      <div class="card"><div class="card-title">Цвет кожуры a* (зелёный → красный)</div><div class="chart-box"><canvas id="t-color"></canvas></div></div>
-      <div class="card"><div class="card-title">Органолептика — выбранный день</div><div class="chart-box"><canvas id="t-radar"></canvas></div></div>
-      <div class="card"><div class="card-title">Профиль сенсоров — выбранный день</div><div class="chart-box"><canvas id="t-sensors"></canvas></div></div>
+      <div class="card">
+        <div class="card-title">Цвет кожуры <abbr title="Координата a* в системе CIE L*a*b*: отрицательная — зелёный, положительная — красный">a*</abbr></div>
+        <div class="card-sub">Маркер покраснения: зелёный (минус) → красный (плюс). Минус на холоде — признак холодового повреждения.</div>
+        <div class="chart-box"><canvas id="t-color"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Органолептика</div>
+        <div class="card-sub">Дегустационная оценка по 5 признакам, шкала 0–5. Выбранный день.</div>
+        <div class="chart-box"><canvas id="t-radar"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Профиль сенсоров S1–S8</div>
+        <div class="card-sub">Отклик каждого из восьми сенсоров — «форма» аромата на выбранный день.</div>
+        <div class="chart-box"><canvas id="t-sensors"></canvas></div>
+      </div>
     </div>
 
     <div class="card" style="margin-bottom:20px">
-      <div class="card-title">Паспорт качества — этап товародвижения</div>
+      <div class="card-title">Паспорт качества на выбранный день</div>
+      <div class="card-sub">Этап товародвижения, рекомендация и ключевые показатели плода.</div>
       <table class="tbl" id="t-passport"></table>
-      <div class="source">Формат по НИР авокадо (табл. 6.3): приёмка → РЦ → магазин → критическое значение.</div>
     </div>
 
     <div class="card" style="margin-bottom:20px">
-      <div class="card-title">Траектория по суткам</div>
+      <div class="card-title">Траектория по суткам хранения</div>
+      <div class="card-sub">Полный путь плода от распредцентра до поздней реализации. Выделена выбранная строка.</div>
       <div style="overflow-x:auto"><table class="tbl" id="t-traj"></table></div>
     </div>
     <div id="t-warn"></div>
   </div>
 </div>
 
-<!-- ═══════════ AVOCADO ═══════════ -->
+<!-- ═══════════ АВОКАДО ═══════════ -->
 <div id="view-avocado" class="view">
+  <div class="view-head">
+    <h1>Авокадо Хасс — маркеры дозревания</h1>
+    <div class="lead">Справочник по температурам хранения: как долго плод остаётся пригодным
+      и какие значения плотности, сахара и цвета соответствуют каждому этапу.</div>
+    <div class="src">Научный отчёт «Плоды авокадо», этап 1 · таблицы 6.2 (шкала дозревания) и 6.3 (маркеры) · прибор МАГ-8</div>
+  </div>
+
   <div class="panel">
-    <div class="panel-title">Температура хранения — авокадо Хасс</div>
+    <div class="panel-title">Температура хранения</div>
     <div class="pills" id="a-pills"></div>
-    <div style="margin-top:16px;max-width:260px">
-      <label class="lbl">Плотность мякоти, кг/см² (опц.)</label>
+    <div style="margin-top:18px;max-width:280px">
+      <label class="lbl">Плотность мякоти, кг/см² — необязательно</label>
       <input type="number" id="a-firm" value="8" step="1" oninput="calcAvocado()">
+      <div class="field-hint">Подсветит текущую стадию на шкале дозревания.</div>
     </div>
-    <div class="source">Источник: НИР «Плоды авокадо», этап 1 — таблицы 6.2 (шкала дозревания) и 6.3 (маркеры по температурам). Прибор МАГ-8.</div>
   </div>
 
   <div id="a-results">
     <div class="status" id="a-status">
       <div class="status-top">
         <div><h2 id="a-title"></h2><div class="rec" id="a-sub"></div></div>
-        <div style="text-align:right"><div style="font-size:11px;color:var(--muted)">Оптимальный срок</div><div style="font-size:24px;font-weight:700" id="a-days"></div></div>
+        <div style="text-align:right;min-width:130px">
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em">Оптимальный срок</div>
+          <div style="font-size:26px;font-weight:700;font-family:var(--mono);color:var(--avocado)" id="a-days"></div>
+        </div>
       </div>
       <div class="badges" id="a-voc"></div>
     </div>
@@ -261,39 +374,53 @@ input[type=range]{flex:1;accent-color:var(--avocado);height:6px;cursor:pointer}
     <div class="g2">
       <div class="card">
         <div class="card-title">Маркеры по этапам товародвижения</div>
+        <div class="card-sub">Диапазоны показателей на распредцентре (+8 °C), в магазине (+20 °C) и в критической точке.</div>
         <table class="tbl" id="a-markers"></table>
       </div>
       <div class="card">
-        <div class="card-title">Шкала дозревания (8 стадий)</div>
+        <div class="card-title">Шкала дозревания · 8 стадий</div>
+        <div class="card-sub">От твёрдого зелёного плода (1) до порчи (8). Стадия 5–6 — потребительская зрелость.</div>
         <div id="a-scale"></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ═══════════ APPLE ═══════════ -->
+<!-- ═══════════ ЯБЛОКИ ═══════════ -->
 <div id="view-apple" class="view">
+  <div class="view-head">
+    <h1>Яблоки — индексы зрелости</h1>
+    <div class="lead">Комплексные индексы связывают твёрдость, сахар и крахмал в одно число,
+      по которому определяют оптимальный момент съёма и срок хранения.</div>
+    <div class="src">Научный отчёт «Яблоки», этап 2, раздел 3.3 (комплексные индексы степени зрелости)</div>
+  </div>
+
   <div class="panel">
-    <div class="panel-title">Калькулятор индексов зрелости — яблоки</div>
+    <div class="panel-title">Показатели плода</div>
     <div class="ctrl-grid">
       <div><label class="lbl">Сорт</label><select id="ap-variety"><option>Айдаред</option><option>Голден Делишес</option></select></div>
-      <div><label class="lbl">Твёрдость T, кг/см²</label><input type="number" id="ap-T" value="7.0" step="0.1"></div>
-      <div><label class="lbl">Brix (СРВ), %</label><input type="number" id="ap-brix" value="12.0" step="0.1"></div>
-      <div><label class="lbl">ЙКП (йодкрахмал), балл</label><input type="number" id="ap-isi" value="4" step="0.5"></div>
-      <div><label class="lbl">Кислотность A, % (опц.)</label><input type="number" id="ap-acid" value="0.5" step="0.1"></div>
+      <div><label class="lbl">Твёрдость мякоти, кг/см²</label><input type="number" id="ap-T" value="7.0" step="0.1"></div>
+      <div><label class="lbl">Сахар (<abbr title="Сухие растворимые вещества">СРВ</abbr>), % Brix</label><input type="number" id="ap-brix" value="12.0" step="0.1"></div>
+      <div><label class="lbl"><abbr title="Йодкрахмальная проба: чем меньше крахмала, тем спелее плод">Йодкрахмальная проба</abbr>, балл</label><input type="number" id="ap-isi" value="4" step="0.5"></div>
+      <div><label class="lbl">Кислотность, % — необязательно</label><input type="number" id="ap-acid" value="0.5" step="0.1"></div>
       <div><label class="lbl">&nbsp;</label><button class="btn" style="background:var(--apple)" onclick="calcApple()">Рассчитать</button></div>
     </div>
-    <div class="source">Формулы из НИР «Яблоки», этап 2, раздел 3.3 (комплексные индексы степени зрелости).</div>
   </div>
 
   <div id="ap-results">
     <div class="card" style="margin-bottom:20px">
       <div class="card-title">Индексы зрелости</div>
+      <div class="card-sub">Четыре формулы из отчёта. Чем ниже индекс Штрайфа — тем спелее плод.</div>
       <div class="idx-grid" id="ap-indices"></div>
       <div class="verdict" id="ap-verdict"></div>
+      <div class="legend-line">
+        Обозначения: <b>T</b> — твёрдость мякоти, кг/см² · <b>СРВ</b> — сухие растворимые вещества (сахар, % Brix)
+        · <b>ЙКП</b> — йодкрахмальная проба, балл · <b>A</b> — титруемая кислотность, %
+      </div>
     </div>
     <div class="card">
-      <div class="card-title">Индекс Штрайфа — этапы товародвижения</div>
+      <div class="card-title">Индекс Штрайфа по этапам товародвижения</div>
+      <div class="card-sub">Ориентир, какому этапу цепи поставок соответствует рассчитанное значение.</div>
       <table class="tbl" id="ap-stages"></table>
     </div>
   </div>
@@ -302,7 +429,7 @@ input[type=range]{flex:1;accent-color:var(--avocado);height:6px;cursor:pointer}
 </div><!-- /wrap -->
 
 <script>
-// ════════════ NAV ════════════
+// ════════════ НАВИГАЦИЯ ════════════
 function show(v){
   ['home','tomato','avocado','apple'].forEach(x=>{
     document.getElementById('view-'+x).classList.toggle('active', x===v);
@@ -316,14 +443,15 @@ function show(v){
 let tomatoLoaded=false, avoLoaded=false, appleLoaded=false;
 
 const CHEM_LABELS={chlorophyll:'Хлорофилл',carotenoids:'Каротиноиды',lycopene:'Ликопин',
-  vitamin_c:'Витамин C',phenolics:'Фенольные',flavonoids:'Флавоноиды',total_antioxidants:'ОАОА',
-  respiration:'Дыхание',sugars_brix:'Сахара',acidity:'Кислотность'};
+  vitamin_c:'Витамин C',phenolics:'Фенольные вещества',flavonoids:'Флавоноиды',
+  total_antioxidants:'Антиоксиданты',respiration:'Дыхание',sugars_brix:'Сахара',acidity:'Кислотность'};
 const ORG=['внешний вид','цвет','запах','вкус','консистенция'];
 const SENSORS=['S1','S2','S3','S4','S5','S6','S7','S8'];
 const CAT=['#0072B2','#D55E00','#009E73','#CC79A7'];
+const AXIS='#5B6672', GRID='#E4E7EB';
 let charts={}, tData=null;
 
-// ════════════ TOMATO ════════════
+// ════════════ ТОМАТЫ ════════════
 function tSlide(v){
   document.getElementById('t-daylabel').textContent=v;
   document.getElementById('t-daybadge').textContent='День '+v;
@@ -376,18 +504,18 @@ function tRenderStatus(sel){
   document.getElementById('t-rec').textContent=q.recommendation;
   const rel=Math.round(sel.reliability);
   document.getElementById('t-badges').innerHTML=`
-    <span class="bdg">Срок: ~${sel.shelf_life} сут</span>
-    <span class="bdg ${pct>65?'red':pct>45?'amber':''}">Использовано: ${pct.toFixed(0)}%</span>
-    <span class="bdg ${rel<65?'red':rel<85?'amber':''}">Надёжность: ${rel}/100</span>
-    <span class="bdg ${sel.color.a<0?'red':sel.color.a<8?'amber':''}">Цвет a*: ${sel.color.a.toFixed(1)}</span>
-    <span class="bdg">Органолептика: ${sel.organoleptic.sum.toFixed(1)}/25</span>`;
+    <span class="bdg">Срок годности <b>~${sel.shelf_life}</b> сут</span>
+    <span class="bdg ${pct>65?'red':pct>45?'amber':'ok'}">Использовано срока <b>${pct.toFixed(0)}%</b></span>
+    <span class="bdg ${rel<65?'red':rel<85?'amber':'ok'}">Надёжность прогноза <b>${rel}</b>/100</span>
+    <span class="bdg ${sel.color.a<0?'red':sel.color.a<8?'amber':'ok'}">Цвет a* <b>${sel.color.a.toFixed(1)}</b></span>
+    <span class="bdg">Органолептика <b>${sel.organoleptic.sum.toFixed(1)}</b>/25</span>`;
   tIcon(pct, sel.color.a);
 }
 function tIcon(pct,a){
   const body=document.getElementById('ti-body'),stem=document.getElementById('ti-stem'),
     mouth=document.getElementById('ti-mouth'),icon=document.getElementById('t-icon'),lab=document.getElementById('t-iconlabel');
   icon.style.transform='';
-  if(a<0){body.setAttribute('fill','#6B8E23');body.setAttribute('stroke','#556B2F');mouth.setAttribute('d','M42 66 Q50 60 58 66');lab.textContent='❄ Холод. повреждение';lab.style.color='var(--serious)';return;}
+  if(a<0){body.setAttribute('fill','#6B8E23');body.setAttribute('stroke','#556B2F');mouth.setAttribute('d','M42 66 Q50 60 58 66');lab.textContent='❄ Холодовое повреждение';lab.style.color='var(--crit)';return;}
   if(pct<=22){body.setAttribute('fill','#8BC34A');body.setAttribute('stroke','#558B2F');mouth.setAttribute('d','M40 60 Q50 72 60 60');lab.textContent='Свежий';lab.style.color='var(--good)';}
   else if(pct<=55){body.setAttribute('fill','#E63946');body.setAttribute('stroke','#C1121F');mouth.setAttribute('d','M42 62 Q50 70 58 62');lab.textContent='Дозревание';lab.style.color='var(--avocado)';}
   else if(pct<=80){body.setAttribute('fill','#C62828');body.setAttribute('stroke','#8E0000');mouth.setAttribute('d','M42 64 L58 64');lab.textContent='Зрелый';lab.style.color='var(--warn)';}
@@ -401,58 +529,61 @@ function tChemChart(traj){
   charts.chem=new Chart(document.getElementById('t-chem'),{type:'line',
     data:{labels:days,datasets:keys.map((p,i)=>({label:CHEM_LABELS[p],
       data:traj.map(t=>base[p]?+(t.chemistry[p]/base[p]*100).toFixed(1):null),
-      borderColor:CAT[i],backgroundColor:CAT[i]+'18',tension:.3,pointRadius:4,borderWidth:2,fill:false}))},
+      borderColor:CAT[i],backgroundColor:CAT[i]+'18',tension:.3,pointRadius:3,borderWidth:2,fill:false}))},
     options:copts('%')});
 }
 function tEnoseChart(traj){
   const days=traj.map(t=>'Д'+t.day);
   charts.enose=new Chart(document.getElementById('t-enose'),{type:'line',
-    data:{labels:days,datasets:[{label:'e-nose индекс',data:traj.map(t=>t.enose.enose_index),
-      borderColor:'#0072B2',backgroundColor:'#0072B218',tension:.3,pointRadius:4,borderWidth:2.5,fill:true}]},
+    data:{labels:days,datasets:[{label:'Интегральный сигнал',data:traj.map(t=>t.enose.enose_index),
+      borderColor:'#0072B2',backgroundColor:'#0072B216',tension:.3,pointRadius:4,borderWidth:2.5,fill:true}]},
     options:copts()});
 }
 function tColorChart(traj){
   const days=traj.map(t=>'Д'+t.day);
   charts.color=new Chart(document.getElementById('t-color'),{type:'line',
-    data:{labels:days,datasets:[{label:'a* (краснота)',data:traj.map(t=>t.color.a),
-      borderColor:'#D55E00',backgroundColor:'#D55E0018',tension:.3,pointRadius:5,borderWidth:2.5,fill:false,
+    data:{labels:days,datasets:[{label:'Цвет a*',data:traj.map(t=>t.color.a),
+      borderColor:'#D55E00',backgroundColor:'#D55E0018',tension:.3,pointRadius:4,borderWidth:2.5,fill:false,
       segment:{borderColor:c=>c.p1.parsed.y<0?'#556B2F':'#D55E00'}}]},
-    options:{...copts(),plugins:{legend:{display:false},annotation:false}}});
+    options:{...copts(),plugins:{legend:{display:false}}}});
 }
 function tRadar(sel){
   charts.radar=new Chart(document.getElementById('t-radar'),{type:'radar',
     data:{labels:ORG,datasets:[{label:'Балл',data:ORG.map(p=>sel.organoleptic.params[p]),
-      borderColor:'#D62828',backgroundColor:'rgba(214,40,40,.15)',borderWidth:2,pointRadius:3}]},
+      borderColor:'#C4362F',backgroundColor:'rgba(196,54,47,.15)',borderWidth:2,pointRadius:3}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-      scales:{r:{beginAtZero:true,max:5,ticks:{stepSize:1,font:{size:9}}}}}});
+      scales:{r:{beginAtZero:true,max:5,ticks:{stepSize:1,font:{size:9},color:AXIS,backdropColor:'transparent'},
+        grid:{color:GRID},angleLines:{color:GRID},pointLabels:{font:{size:11},color:AXIS}}}}});
 }
 function tSensors(sel){
   charts.sensors=new Chart(document.getElementById('t-sensors'),{type:'radar',
     data:{labels:SENSORS,datasets:[{label:'Сигнал',data:SENSORS.map(s=>sel.enose[s]),
       borderColor:'#0072B2',backgroundColor:'rgba(0,114,178,.15)',borderWidth:2,pointRadius:3}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-      scales:{r:{beginAtZero:true,ticks:{font:{size:9}}}}}});
+      scales:{r:{beginAtZero:true,ticks:{font:{size:9},color:AXIS,backdropColor:'transparent'},
+        grid:{color:GRID},angleLines:{color:GRID},pointLabels:{font:{size:11},color:AXIS}}}}});
 }
 function copts(unit){return{responsive:true,maintainAspectRatio:false,
   interaction:{mode:'index',intersect:false},
-  plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11},color:'#6B7280'}},
-    tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.parsed.y+(unit||'')}}},
-  scales:{y:{beginAtZero:true,grid:{color:'#EEE'},ticks:{font:{size:11},color:'#6B7280'}},
-    x:{grid:{display:false},ticks:{font:{size:11},color:'#6B7280'}}}};}
+  plugins:{legend:{position:'bottom',labels:{boxWidth:10,boxHeight:10,usePointStyle:true,font:{size:11,family:"'IBM Plex Sans'"},color:AXIS}},
+    tooltip:{backgroundColor:'#17222E',padding:10,titleFont:{family:"'IBM Plex Sans'"},bodyFont:{family:"'IBM Plex Mono'"},
+      callbacks:{label:c=>c.dataset.label+': '+c.parsed.y+(unit||'')}}},
+  scales:{y:{beginAtZero:true,grid:{color:GRID},ticks:{font:{size:11,family:"'IBM Plex Mono'"},color:AXIS}},
+    x:{grid:{display:false},ticks:{font:{size:11,family:"'IBM Plex Mono'"},color:AXIS}}}};}
 function tPassport(sel){
   const p=sel.passport;
   document.getElementById('t-passport').innerHTML=`
-    <tr><td style="font-weight:600">Этап</td><td>${p.stage}</td></tr>
+    <tr><td style="font-weight:600;width:210px">Этап товародвижения</td><td>${p.stage}</td></tr>
     <tr><td style="font-weight:600">Рекомендация</td><td>${p.action}</td></tr>
-    <tr><td>Использовано срока</td><td class="num">${p.used_pct}%</td></tr>
+    <tr><td>Использовано срока годности</td><td class="num">${p.used_pct}%</td></tr>
     <tr><td>Осталось дней</td><td class="num">${p.days_left}</td></tr>
-    <tr><td>Витамин C</td><td class="num">${p.vitamin_c}</td></tr>
-    <tr><td>Сахара, Brix</td><td class="num">${p.sugar_brix}</td></tr>
-    <tr><td>Цвет a*</td><td class="num">${p.color_a.toFixed(2)}</td></tr>`;
+    <tr><td>Витамин C, мг%</td><td class="num">${p.vitamin_c}</td></tr>
+    <tr><td>Сахара, % Brix</td><td class="num">${p.sugar_brix}</td></tr>
+    <tr><td>Цвет кожуры a*</td><td class="num">${p.color_a.toFixed(2)}</td></tr>`;
 }
 function tTraj(traj,selDay){
-  let h=`<thead><tr><th>Сут</th><th>Состояние</th><th class=num>Эфф.возраст</th><th class=num>Хлороф.</th><th class=num>Вит C</th><th class=num>a*</th><th class=num>Органол.</th><th class=num>e-nose</th></tr></thead><tbody>`;
-  traj.forEach(t=>{h+=`<tr class="${t.day===selDay?'hl':''}"><td><b>${t.day}</b></td><td>${t.quality.state}</td>
+  let h=`<thead><tr><th>Сутки</th><th>Состояние</th><th class=num>Эфф. возраст</th><th class=num>Хлорофилл</th><th class=num>Витамин C</th><th class=num>Цвет a*</th><th class=num>Органолептика</th><th class=num>e-nose</th></tr></thead><tbody>`;
+  traj.forEach(t=>{h+=`<tr class="${t.day===selDay?'hl':''}"><td><b class="mono">${t.day}</b></td><td>${t.quality.state}</td>
     <td class=num>${t.metrics.effective_day}</td><td class=num>${t.chemistry.chlorophyll.toFixed(3)}</td>
     <td class=num>${t.chemistry.vitamin_c.toFixed(1)}</td><td class=num>${t.color.a.toFixed(1)}</td>
     <td class=num>${t.organoleptic.sum.toFixed(1)}</td><td class=num>${t.enose.enose_index.toFixed(0)}</td></tr>`;});
@@ -464,11 +595,11 @@ function tWarn(sel){
     '<div class="card"><div class="card-title">Предупреждения</div>'+ws.map(w=>`<div class="warn-item">${w}</div>`).join('')+'</div>':'';
 }
 
-// ════════════ AVOCADO ════════════
+// ════════════ АВОКАДО ════════════
 const AVO_TEMPS=[8,12,15,20,27]; let avoTemp=12;
 function buildAvoPills(){
   document.getElementById('a-pills').innerHTML=AVO_TEMPS.map(t=>
-    `<div class="pill ${t===avoTemp?'active':''}" onclick="setAvoTemp(${t})">+${t}°C</div>`).join('');
+    `<div class="pill ${t===avoTemp?'active':''}" onclick="setAvoTemp(${t})">+${t} °C</div>`).join('');
 }
 function setAvoTemp(t){avoTemp=t;buildAvoPills();calcAvocado();}
 async function calcAvocado(){
@@ -476,30 +607,28 @@ async function calcAvocado(){
   const r=await fetch('/api/avocado/lookup',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({temp:avoTemp,firmness:firm})});
   const d=await r.json(); if(!d.ok){alert(d.error);return;}
-  document.getElementById('a-title').textContent=`Хранение при +${d.temp}°C`;
-  document.getElementById('a-sub').textContent=`Эксперимент: ${d.exp_days} сут`;
+  document.getElementById('a-title').textContent=`Хранение при +${d.temp} °C`;
+  document.getElementById('a-sub').textContent=`Длительность в эксперименте: ${d.exp_days} сут`;
   document.getElementById('a-days').textContent=d.opt_days+' сут';
   const cur=d.current_stage;
   document.getElementById('a-voc').innerHTML=cur?
-    `<span class="bdg">Текущая стадия: ${cur.stage} (${cur.score} балла)</span>
-     <span class="bdg">Brix ${cur.brix}%</span><span class="bdg">Плотность ${cur.firmness} кг/см²</span>`
-     +(d.voc?`<span class="bdg amber">Летучие (МАГ-8): зел. ${d.voc.green} → спел. ${d.voc.ripe} → перезр. ${d.voc.overripe}</span>`:''):'';
-  // markers table
-  let h=`<thead><tr><th>Маркер</th><th class=num>РЦ 8°C</th><th class=num>Магазин 20°C</th><th class=num>Критич.</th></tr></thead><tbody>`;
+    `<span class="bdg ok">Текущая стадия <b>${cur.stage}</b> · ${cur.score} балла</span>
+     <span class="bdg">Сахар <b>${cur.brix}</b> % Brix</span><span class="bdg">Плотность <b>${cur.firmness}</b> кг/см²</span>`
+     +(d.voc?`<span class="bdg amber">Летучие (МАГ-8): зелёный ${d.voc.green} → спелый ${d.voc.ripe} → перезрелый ${d.voc.overripe}</span>`:''):'';
+  let h=`<thead><tr><th>Маркер</th><th class=num>Распредцентр +8 °C</th><th class=num>Магазин +20 °C</th><th class=num>Критич.</th></tr></thead><tbody>`;
   d.markers.forEach(m=>{h+=`<tr><td>${m.name}</td><td class=num>${m.rc}</td><td class=num>${m.shop}</td><td class=num>${m.crit}</td></tr>`;});
   document.getElementById('a-markers').innerHTML=h+'</tbody>';
-  // ripening scale
   const hue=s=>['#8BC34A','#7CB342','#689F38','#558B2F','#33691E','#2E5D1A','#795548','#5D4037'][s-1];
   document.getElementById('a-scale').innerHTML=d.scale.map(s=>{
     const isCur=cur&&s.stage===cur.stage;
     return `<div class="scale-row ${isCur?'cur':''}">
       <div class="scale-badge" style="background:${hue(s.stage)}">${s.stage}</div>
       <div><div class="scale-desc">${s.desc}</div>
-      <div class="scale-meta">Brix ${s.brix}% · плотность ${s.firmness} кг/см² · балл ${s.score}</div></div></div>`;
+      <div class="scale-meta">Сахар ${s.brix} % Brix · плотность ${s.firmness} кг/см² · балл ${s.score}</div></div></div>`;
   }).join('');
 }
 
-// ════════════ APPLE ════════════
+// ════════════ ЯБЛОКИ ════════════
 async function calcApple(){
   const body={T:+document.getElementById('ap-T').value,brix:+document.getElementById('ap-brix').value,
     isi:+document.getElementById('ap-isi').value,acidity:document.getElementById('ap-acid').value||null};
