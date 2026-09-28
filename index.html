@@ -3,721 +3,518 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Оценка состояния томатов</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<title>Агрегатор опытов — качество плодоовощной продукции</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
-/* ── reset & tokens ── */
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --g:#2D6A4F; --g2:#52B788; --g-pale:#EDF7F0;
-  --red:#C9303A; --red-pale:#FEE2E2;
-  --amber:#D97706; --amber-pale:#FEF3C7;
-  --bg:#F4F4EF; --surface:#fff;
-  --border:#E2E2DC; --text:#1A1A2E; --muted:#6B7280;
-  --r:10px;
-  --shadow: 0 1px 3px rgba(0,0,0,.07);
+  --bg:#F4F4EF; --surface:#fff; --border:#E3E3DC;
+  --ink:#1A1A2E; --muted:#6B7280; --faint:#9AA0A6;
+  --tomato:#D62828; --avocado:#556B2F; --apple:#C1121F;
+  --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+  --c1:#0072B2; --c2:#D55E00; --c3:#009E73; --c4:#CC79A7;
+  --r:12px; --sh:0 1px 3px rgba(0,0,0,.07);
 }
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-     background:var(--bg);color:var(--text);line-height:1.55;font-size:14px}
+     background:var(--bg);color:var(--ink);line-height:1.55;font-size:14px}
+.wrap{max-width:1360px;margin:0 auto;padding:22px}
 
-/* ── header ── */
-.hdr{background:var(--g);color:#fff;padding:16px 28px;
-     display:flex;align-items:center;gap:14px}
-.hdr h1{font-size:18px;font-weight:600;letter-spacing:-.2px}
-.hdr p{font-size:12px;opacity:.7;margin-top:1px}
+/* ── top nav ── */
+.topnav{background:var(--ink);color:#fff;padding:0 24px;display:flex;align-items:center;gap:4px;position:sticky;top:0;z-index:50}
+.topnav .brand{font-weight:700;font-size:15px;padding:16px 16px 16px 0;letter-spacing:-.2px}
+.topnav button{background:none;border:none;color:#cfcfcf;font-size:14px;font-weight:600;
+  padding:16px 18px;cursor:pointer;border-bottom:3px solid transparent;transition:.15s}
+.topnav button:hover{color:#fff}
+.topnav button.active{color:#fff;border-bottom-color:#fff}
 
-/* ── layout ── */
-.wrap{max-width:1380px;margin:0 auto;padding:20px}
+/* ── landing ── */
+.landing{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px}
+@media(max-width:820px){.landing{grid-template-columns:1fr}}
+.pcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:28px;cursor:pointer;transition:.18s;box-shadow:var(--sh);border-top:5px solid var(--border)}
+.pcard:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
+.pcard.tomato{border-top-color:var(--tomato)}
+.pcard.avocado{border-top-color:var(--avocado)}
+.pcard.apple{border-top-color:var(--apple)}
+.pcard .emoji{font-size:44px;line-height:1}
+.pcard h2{font-size:20px;margin:12px 0 6px}
+.pcard p{color:var(--muted);font-size:13px;margin-bottom:10px}
+.pcard .tag{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.4px;padding:3px 9px;border-radius:12px;background:#EEF2F0;color:var(--muted)}
+.landing-head{text-align:center;margin-top:48px}
+.landing-head h1{font-size:28px;letter-spacing:-.5px}
+.landing-head p{color:var(--muted);margin-top:8px;max-width:640px;margin-left:auto;margin-right:auto}
 
-/* ── controls panel ── */
-.panel{background:var(--surface);border:1px solid var(--border);
-       border-radius:var(--r);padding:20px 24px;margin-bottom:20px;
-       box-shadow:var(--shadow)}
-.panel-title{font-size:11px;font-weight:700;text-transform:uppercase;
-             letter-spacing:.6px;color:var(--muted);margin-bottom:16px}
-.ctrl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;align-items:end}
-
-label.lbl{display:block;font-size:11px;font-weight:600;color:var(--muted);
-          margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+/* ── generic ── */
+.view{display:none}
+.view.active{display:block}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:20px 24px;margin-bottom:20px;box-shadow:var(--sh)}
+.panel-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;
+  color:var(--muted);margin-bottom:16px}
+.ctrl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;align-items:end}
+label.lbl{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:5px;
+  text-transform:uppercase;letter-spacing:.4px}
 select,input[type=number]{width:100%;padding:9px 11px;border:1px solid var(--border);
-  border-radius:6px;font-size:14px;background:var(--bg);color:var(--text);
-  transition:border-color .18s}
-select:focus,input[type=number]:focus{outline:none;border-color:var(--g)}
-
-/* day slider */
-.slider-wrap{grid-column:1/-1}
-.slider-row{display:flex;align-items:center;gap:14px;margin-top:4px}
-input[type=range]{flex:1;accent-color:var(--g);height:6px;cursor:pointer}
-.day-badge{background:var(--g);color:#fff;border-radius:20px;
-           padding:4px 14px;font-size:13px;font-weight:600;white-space:nowrap}
-.day-stages{display:flex;margin-top:8px;font-size:11px;color:var(--muted)}
-.day-stage-seg{flex:1;text-align:center;padding:3px 0}
-.day-stage-seg:not(:last-child){border-right:1px dashed var(--border)}
-
-.btn{padding:10px 26px;background:var(--g);color:#fff;border:none;
-     border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;
-     transition:background .18s;white-space:nowrap;width:100%}
-.btn:hover{background:#245A42}
+  border-radius:6px;font-size:14px;background:var(--bg);color:var(--ink)}
+select:focus,input:focus{outline:none;border-color:var(--avocado)}
+.btn{padding:10px 24px;color:#fff;border:none;border-radius:6px;font-size:14px;font-weight:600;
+  cursor:pointer;width:100%;background:var(--ink)}
+.btn:hover{opacity:.9}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 
-/* ── status card ── */
-.status{background:var(--surface);border:1px solid var(--border);
-        border-radius:var(--r);padding:20px 24px;margin-bottom:20px;
-        border-left:5px solid var(--g);box-shadow:var(--shadow)}
-.status.warn{border-left-color:var(--amber)}
-.status.bad{border-left-color:var(--red)}
-.status-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px}
-.status h2{font-size:20px;font-weight:700;letter-spacing:-.3px}
-.status .rec{color:var(--muted);font-size:13px;margin-top:3px}
-.status-day{font-size:12px;color:var(--muted);text-align:right}
-.status-day strong{display:block;font-size:22px;color:var(--text);font-weight:700}
-.badges{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
-.bdg{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;
-     border-radius:20px;font-size:12px;font-weight:600;
-     background:var(--g-pale);color:var(--g)}
-.bdg.amber{background:var(--amber-pale);color:var(--amber)}
-.bdg.red{background:var(--red-pale);color:var(--red)}
-
-/* ── progress bar ── */
-.shelf-bar{margin-top:14px}
-.shelf-bar-labels{display:flex;justify-content:space-between;
-                  font-size:11px;color:var(--muted);margin-bottom:5px}
-.bar-track{height:8px;background:#E9E9E4;border-radius:4px;overflow:hidden}
-.bar-fill{height:100%;border-radius:4px;transition:width .5s ease}
-
-/* ── grid ── */
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-bottom:20px}
-@media(max-width:900px){.g2,.g3{grid-template-columns:1fr}.ctrl-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:880px){.g2,.g3{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--sh)}
+.card-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:14px}
+.chart-box{position:relative;height:250px}
 
-.card{background:var(--surface);border:1px solid var(--border);
-      border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
-.card-title{font-size:11px;font-weight:700;text-transform:uppercase;
-            letter-spacing:.5px;color:var(--muted);margin-bottom:14px}
-.chart-box{position:relative;height:260px}
-
-/* ── tables ── */
 .tbl{width:100%;border-collapse:collapse;font-size:13px}
-.tbl th{text-align:left;padding:7px 10px;font-weight:600;
-        border-bottom:2px solid var(--border);font-size:11px;
-        text-transform:uppercase;color:var(--muted);letter-spacing:.3px}
-.tbl td{padding:6px 10px;border-bottom:1px solid var(--border)}
+.tbl th{text-align:left;padding:8px 10px;font-weight:600;border-bottom:2px solid var(--border);
+  font-size:11px;text-transform:uppercase;color:var(--muted);letter-spacing:.3px}
+.tbl td{padding:7px 10px;border-bottom:1px solid var(--border)}
 .tbl tr:last-child td{border-bottom:none}
+.num{text-align:right;font-variant-numeric:tabular-nums;font-family:'SF Mono',Menlo,monospace;font-size:12px}
 .tbl tr.hl td{background:#F0FAF4}
-.num{text-align:right;font-family:'SF Mono','Menlo',monospace;font-size:12px}
-.tbl tr:hover td{background:#FAFAF8}
 
-/* ── stage pills ── */
-.stg{display:inline-block;padding:2px 8px;border-radius:4px;
-     font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
-.stg-rc{background:#DBEAFE;color:#1E40AF}
-.stg-tr{background:#EDE9FE;color:#4C1D95}
-.stg-sh{background:#FEF3C7;color:#78350F}
+/* status card */
+.status{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:20px 24px;margin-bottom:20px;border-left:5px solid var(--good);box-shadow:var(--sh)}
+.status.warn{border-left-color:var(--warn)} .status.bad{border-left-color:var(--crit)}
+.status-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.status h2{font-size:20px} .status .rec{color:var(--muted);font-size:13px;margin-top:3px}
+.badges{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.bdg{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;
+  font-size:12px;font-weight:600;background:#EDF7F0;color:var(--avocado)}
+.bdg.amber{background:#FEF3C7;color:#92400E} .bdg.red{background:#FEE2E2;color:var(--crit)}
 
-/* ── warnings ── */
-.warn-list{display:flex;flex-direction:column;gap:6px;margin-top:14px}
-.wi{padding:8px 12px;border-radius:6px;background:var(--amber-pale);
-    color:#78350F;font-size:13px;border-left:3px solid var(--amber)}
-.wi.ok{background:var(--g-pale);color:#14532D;border-color:var(--g)}
+/* tomato icon */
+.tomato-wrap{display:flex;flex-direction:column;align-items:center;gap:4px}
+.tomato-svg{width:82px;height:82px;transition:.5s}
+.tomato-label{font-size:12px;font-weight:700}
 
-/* ── section heading ── */
-.sec-head{font-size:11px;font-weight:700;text-transform:uppercase;
-          letter-spacing:.6px;color:var(--muted);
-          margin:8px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+/* slider */
+.slider-wrap{grid-column:1/-1}
+.slider-row{display:flex;align-items:center;gap:14px;margin-top:4px}
+input[type=range]{flex:1;accent-color:var(--avocado);height:6px;cursor:pointer}
+.day-badge{background:var(--ink);color:#fff;border-radius:20px;padding:4px 14px;font-size:13px;font-weight:600}
 
-/* ── tomato icon ── */
-.tomato-wrap{display:flex;flex-direction:column;align-items:center;gap:6px}
-.tomato-svg{width:90px;height:90px;transition:all .5s ease}
-.tomato-label{font-size:12px;font-weight:700;text-align:center;letter-spacing:.3px}
+/* temp pills (avocado) */
+.pills{display:flex;gap:8px;flex-wrap:wrap}
+.pill{padding:9px 18px;border:1px solid var(--border);border-radius:8px;background:var(--bg);
+  cursor:pointer;font-weight:600;font-size:14px;transition:.15s}
+.pill.active{background:var(--avocado);color:#fff;border-color:var(--avocado)}
 
-#results{display:none}
+/* ripening scale */
+.scale-row{display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:center;
+  padding:8px 10px;border-bottom:1px solid var(--border)}
+.scale-row:last-child{border:none}
+.scale-row.cur{background:#F0FAF4;border-radius:6px}
+.scale-badge{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-weight:700;color:#fff;font-size:15px}
+.scale-meta{font-size:12px;color:var(--muted)}
+.scale-desc{font-size:13px}
+
+/* index result cards */
+.idx-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:820px){.idx-grid{grid-template-columns:1fr 1fr}}
+.idx-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+.idx-card .name{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.idx-card .val{font-size:26px;font-weight:700;margin:6px 0;font-variant-numeric:tabular-nums}
+.idx-card .form{font-size:11px;color:var(--faint)}
+.verdict{margin-top:16px;padding:12px 16px;border-radius:8px;background:#EDF7F0;color:var(--avocado);
+  font-weight:600;font-size:14px}
+
+.hint{font-size:12px;color:var(--muted);margin-top:10px}
+.warn-item{padding:8px 12px;border-radius:6px;background:#FEF3C7;color:#78350F;font-size:13px;
+  border-left:3px solid var(--warn);margin-bottom:6px}
+.source{font-size:11px;color:var(--faint);margin-top:6px}
 </style>
 </head>
 <body>
 
-<div class="hdr">
-  <div>
-    <h1>Оценка состояния томатов</h1>
-    <p>На основе математической модели корреляции e-nose с физико-химическими параметрами</p>
-  </div>
+<div class="topnav">
+  <div class="brand">Качество плодоовощной продукции</div>
+  <button id="nav-home" class="active" onclick="show('home')">Обзор</button>
+  <button id="nav-tomato" onclick="show('tomato')">Томаты</button>
+  <button id="nav-avocado" onclick="show('avocado')">Авокадо</button>
+  <button id="nav-apple" onclick="show('apple')">Яблоки</button>
 </div>
 
 <div class="wrap">
 
-  <!-- Controls -->
+<!-- ═══════════ LANDING ═══════════ -->
+<div id="view-home" class="view active">
+  <div class="landing-head">
+    <h1>Агрегатор опытов по качеству плодов</h1>
+    <p>Визуализация результатов исследований температурных режимов и физиологического состояния плодов в цепи поставок. Данные РЭУ им. Г.В. Плеханова, прибор «Нос-диагност МАГ-8».</p>
+  </div>
+  <div class="landing">
+    <div class="pcard tomato" onclick="show('tomato')">
+      <div class="emoji">🍅</div>
+      <h2>Томаты</h2>
+      <p>Модель по данным электронного носа: химия, e-nose, цвет a*, органолептика, паспорт качества по цепи поставок.</p>
+      <span class="tag">Сорта Фламенко · Черри</span>
+    </div>
+    <div class="pcard avocado" onclick="show('avocado')">
+      <div class="emoji">🥑</div>
+      <h2>Авокадо</h2>
+      <p>Справочник по НИР: шкала дозревания (8 стадий) и маркеры по температурам хранения — РЦ, магазин, критические значения.</p>
+      <span class="tag">Сорт Хасс</span>
+    </div>
+    <div class="pcard apple" onclick="show('apple')">
+      <div class="emoji">🍏</div>
+      <h2>Яблоки</h2>
+      <p>Калькулятор комплексных индексов зрелости: Штрайф, Ягер, FARS, Митин — по твёрдости, Brix и йодкрахмальной пробе.</p>
+      <span class="tag">Айдаред · Голден Делишес</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TOMATO ═══════════ -->
+<div id="view-tomato" class="view">
   <div class="panel">
-    <div class="panel-title">Параметры цепи поставок</div>
+    <div class="panel-title">Параметры цепи поставок — томаты</div>
     <div class="ctrl-grid">
-
-      <div>
-        <label class="lbl">Сорт</label>
-        <select id="variety">
-          <option value="Черри">Черри</option>
-          <option value="Фламенко">Фламенко</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="lbl">T° отгрузки с теплицы</label>
-        <input type="number" id="greenhouse" value="9" step="0.5" min="-5" max="45">
-      </div>
-
-      <div>
-        <label class="lbl">T° на РЦ · 4 суток</label>
-        <input type="number" id="dc" value="8" step="0.5" min="-5" max="45">
-      </div>
-
-      <div>
-        <label class="lbl">T° транспортировки · 3 суток</label>
-        <input type="number" id="transport" value="8" step="0.5" min="-5" max="45">
-      </div>
-
-      <div>
-        <label class="lbl">T° в магазине</label>
-        <input type="number" id="store" value="25" step="0.5" min="-5" max="50">
-      </div>
-
-      <div>
-        <label class="lbl">&nbsp;</label>
-        <button class="btn" id="calcBtn" onclick="calculate()">Рассчитать</button>
-      </div>
-
-      <!-- Day slider — full width -->
+      <div><label class="lbl">Сорт</label>
+        <select id="t-variety"><option>Черри</option><option>Фламенко</option></select></div>
+      <div><label class="lbl">T° отгрузки</label><input type="number" id="t-gh" value="9" step="0.5"></div>
+      <div><label class="lbl">T° РЦ · 4 сут</label><input type="number" id="t-dc" value="8" step="0.5"></div>
+      <div><label class="lbl">T° транспорт · 3 сут</label><input type="number" id="t-tr" value="8" step="0.5"></div>
+      <div><label class="lbl">T° магазин</label><input type="number" id="t-st" value="25" step="0.5"></div>
+      <div><label class="lbl">&nbsp;</label><button class="btn" style="background:var(--tomato)" onclick="calcTomato()">Рассчитать</button></div>
       <div class="slider-wrap">
-        <label class="lbl">Сутки хранения: показать состояние на день <span id="dayLabel">7</span></label>
+        <label class="lbl">Сутки хранения: <span id="t-daylabel">7</span></label>
         <div class="slider-row">
-          <input type="range" id="daySlider" min="0" max="21" value="7" step="1"
-                 oninput="onSlider(this.value)">
-          <span class="day-badge" id="dayBadge">День 7</span>
-        </div>
-        <div class="day-stages">
-          <div class="day-stage-seg">РЦ (0–4)</div>
-          <div class="day-stage-seg">Транспорт (4–7)</div>
-          <div class="day-stage-seg">Магазин ранний (7–14)</div>
-          <div class="day-stage-seg">Магазин поздний (14–21)</div>
+          <input type="range" id="t-slider" min="0" max="21" value="7" step="1" oninput="tSlide(this.value)">
+          <span class="day-badge" id="t-daybadge">День 7</span>
         </div>
       </div>
-
     </div>
   </div>
 
-  <!-- Results -->
-  <div id="results">
-
-    <!-- Status card -->
-    <div class="status" id="statusCard">
+  <div id="t-results">
+    <div class="status" id="t-status">
       <div class="status-top">
-        <div>
-          <h2 id="statusText"></h2>
-          <div class="rec" id="recText"></div>
-        </div>
-        <div class="status-day">
-          <div class="tomato-wrap">
-            <svg id="tomatoIcon" class="tomato-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-              <!-- stem -->
-              <path id="tStem" d="M50 18 C48 10, 42 5, 35 8 M50 18 C52 10, 58 5, 65 8 M50 18 C49 12, 50 6, 50 3"
-                    stroke="#2D6A4F" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-              <!-- body -->
-              <ellipse id="tBody" cx="50" cy="55" rx="36" ry="34"
-                       fill="#E63946" stroke="#C1121F" stroke-width="1.5"/>
-              <!-- highlight -->
-              <ellipse cx="38" cy="42" rx="10" ry="7" fill="rgba(255,255,255,.25)"
-                       transform="rotate(-20 38 42)"/>
-              <!-- face -->
-              <g id="tFace">
-                <circle cx="40" cy="52" r="2.5" fill="#1A1A2E"/>
-                <circle cx="60" cy="52" r="2.5" fill="#1A1A2E"/>
-                <path id="tMouth" d="M42 62 Q50 70 58 62" stroke="#1A1A2E"
-                      stroke-width="2" fill="none" stroke-linecap="round"/>
-              </g>
-              <!-- wrinkles (hidden by default) -->
-              <g id="tWrinkles" opacity="0">
-                <path d="M25 50 Q28 55 25 60" stroke="#8B0000" stroke-width="1" fill="none"/>
-                <path d="M75 50 Q72 55 75 60" stroke="#8B0000" stroke-width="1" fill="none"/>
-                <path d="M35 72 Q40 75 45 72" stroke="#8B0000" stroke-width="1" fill="none"/>
-              </g>
-            </svg>
-            <div class="tomato-label" id="tomatoLabel"></div>
-          </div>
-          Расчёт на сутки <strong id="statusDay"></strong>
+        <div><h2 id="t-state"></h2><div class="rec" id="t-rec"></div></div>
+        <div class="tomato-wrap">
+          <svg id="t-icon" class="tomato-svg" viewBox="0 0 100 100">
+            <path id="ti-stem" d="M50 18 C48 10,42 5,35 8 M50 18 C52 10,58 5,65 8 M50 18 C49 12,50 6,50 3" stroke="#2D6A4F" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <ellipse id="ti-body" cx="50" cy="55" rx="36" ry="34" fill="#E63946" stroke="#C1121F" stroke-width="1.5"/>
+            <ellipse cx="38" cy="42" rx="10" ry="7" fill="rgba(255,255,255,.25)" transform="rotate(-20 38 42)"/>
+            <circle cx="40" cy="52" r="2.5" fill="#1A1A2E"/><circle cx="60" cy="52" r="2.5" fill="#1A1A2E"/>
+            <path id="ti-mouth" d="M42 62 Q50 70 58 62" stroke="#1A1A2E" stroke-width="2" fill="none" stroke-linecap="round"/>
+          </svg>
+          <div class="tomato-label" id="t-iconlabel"></div>
         </div>
       </div>
-      <div class="badges" id="badges"></div>
-
-      <!-- Shelf life progress -->
-      <div class="shelf-bar">
-        <div class="shelf-bar-labels">
-          <span>0 сут.</span>
-          <span id="barMid"></span>
-          <span id="barEnd"></span>
-        </div>
-        <div class="bar-track">
-          <div class="bar-fill" id="barFill"></div>
-        </div>
-      </div>
+      <div class="badges" id="t-badges"></div>
     </div>
 
-    <!-- Charts row 1 -->
     <div class="g2">
-      <div class="card">
-        <div class="card-title">Химические показатели по суткам</div>
-        <div class="chart-box"><canvas id="chemChart"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Электронный нос (e-nose) по суткам</div>
-        <div class="chart-box"><canvas id="enoseChart"></canvas></div>
-      </div>
+      <div class="card"><div class="card-title">Химические показатели (% от исходного)</div><div class="chart-box"><canvas id="t-chem"></canvas></div></div>
+      <div class="card"><div class="card-title">Электронный нос — интегральный сигнал</div><div class="chart-box"><canvas id="t-enose"></canvas></div></div>
     </div>
 
-    <!-- Charts row 2 -->
     <div class="g3">
-      <div class="card">
-        <div class="card-title">Профиль сенсоров — выбранный день</div>
-        <div class="chart-box"><canvas id="radarChart"></canvas></div>
-      </div>
-      <div class="card" style="grid-column:span 2">
-        <div class="card-title">Траектория по этапам</div>
-        <div style="overflow-x:auto"><table class="tbl" id="traj"></table></div>
-      </div>
+      <div class="card"><div class="card-title">Цвет кожуры a* (зелёный → красный)</div><div class="chart-box"><canvas id="t-color"></canvas></div></div>
+      <div class="card"><div class="card-title">Органолептика — выбранный день</div><div class="chart-box"><canvas id="t-radar"></canvas></div></div>
+      <div class="card"><div class="card-title">Профиль сенсоров — выбранный день</div><div class="chart-box"><canvas id="t-sensors"></canvas></div></div>
     </div>
 
-    <!-- Full chemistry table -->
     <div class="card" style="margin-bottom:20px">
-      <div class="card-title">Все химические показатели по суткам</div>
-      <div style="overflow-x:auto"><table class="tbl" id="chemFull"></table></div>
+      <div class="card-title">Паспорт качества — этап товародвижения</div>
+      <table class="tbl" id="t-passport"></table>
+      <div class="source">Формат по НИР авокадо (табл. 6.3): приёмка → РЦ → магазин → критическое значение.</div>
     </div>
 
-    <!-- Correlation features -->
     <div class="card" style="margin-bottom:20px">
-      <div class="card-title">Корреляционные признаки e-nose (относительно дня 0)</div>
-      <div style="overflow-x:auto"><table class="tbl" id="featFull"></table></div>
+      <div class="card-title">Траектория по суткам</div>
+      <div style="overflow-x:auto"><table class="tbl" id="t-traj"></table></div>
     </div>
-
-    <!-- Stress metrics -->
-    <div class="g2" style="margin-bottom:20px">
-      <div class="card">
-        <div class="card-title">Стресс-факторы температурного режима</div>
-        <table class="tbl" id="stressTable"></table>
-      </div>
-      <div class="card">
-        <div class="card-title">Предупреждения</div>
-        <div id="warnBlock"></div>
-      </div>
-    </div>
-
-  </div><!-- /results -->
+    <div id="t-warn"></div>
+  </div>
 </div>
 
+<!-- ═══════════ AVOCADO ═══════════ -->
+<div id="view-avocado" class="view">
+  <div class="panel">
+    <div class="panel-title">Температура хранения — авокадо Хасс</div>
+    <div class="pills" id="a-pills"></div>
+    <div style="margin-top:16px;max-width:260px">
+      <label class="lbl">Плотность мякоти, кг/см² (опц.)</label>
+      <input type="number" id="a-firm" value="8" step="1" oninput="calcAvocado()">
+    </div>
+    <div class="source">Источник: НИР «Плоды авокадо», этап 1 — таблицы 6.2 (шкала дозревания) и 6.3 (маркеры по температурам). Прибор МАГ-8.</div>
+  </div>
+
+  <div id="a-results">
+    <div class="status" id="a-status">
+      <div class="status-top">
+        <div><h2 id="a-title"></h2><div class="rec" id="a-sub"></div></div>
+        <div style="text-align:right"><div style="font-size:11px;color:var(--muted)">Оптимальный срок</div><div style="font-size:24px;font-weight:700" id="a-days"></div></div>
+      </div>
+      <div class="badges" id="a-voc"></div>
+    </div>
+
+    <div class="g2">
+      <div class="card">
+        <div class="card-title">Маркеры по этапам товародвижения</div>
+        <table class="tbl" id="a-markers"></table>
+      </div>
+      <div class="card">
+        <div class="card-title">Шкала дозревания (8 стадий)</div>
+        <div id="a-scale"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ APPLE ═══════════ -->
+<div id="view-apple" class="view">
+  <div class="panel">
+    <div class="panel-title">Калькулятор индексов зрелости — яблоки</div>
+    <div class="ctrl-grid">
+      <div><label class="lbl">Сорт</label><select id="ap-variety"><option>Айдаред</option><option>Голден Делишес</option></select></div>
+      <div><label class="lbl">Твёрдость T, кг/см²</label><input type="number" id="ap-T" value="7.0" step="0.1"></div>
+      <div><label class="lbl">Brix (СРВ), %</label><input type="number" id="ap-brix" value="12.0" step="0.1"></div>
+      <div><label class="lbl">ЙКП (йодкрахмал), балл</label><input type="number" id="ap-isi" value="4" step="0.5"></div>
+      <div><label class="lbl">Кислотность A, % (опц.)</label><input type="number" id="ap-acid" value="0.5" step="0.1"></div>
+      <div><label class="lbl">&nbsp;</label><button class="btn" style="background:var(--apple)" onclick="calcApple()">Рассчитать</button></div>
+    </div>
+    <div class="source">Формулы из НИР «Яблоки», этап 2, раздел 3.3 (комплексные индексы степени зрелости).</div>
+  </div>
+
+  <div id="ap-results">
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">Индексы зрелости</div>
+      <div class="idx-grid" id="ap-indices"></div>
+      <div class="verdict" id="ap-verdict"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Индекс Штрайфа — этапы товародвижения</div>
+      <table class="tbl" id="ap-stages"></table>
+    </div>
+  </div>
+</div>
+
+</div><!-- /wrap -->
+
 <script>
-const CHEM_LABELS = {
-  chlorophyll:'Хлорофилл', carotenoids:'Каротиноиды', lycopene:'Ликопин',
-  vitamin_c:'Витамин C', phenolics:'Фенольные', flavonoids:'Флавоноиды',
-  total_antioxidants:'ОАОА', respiration:'Дыхание',
-  sugars_brix:'Сахара (Brix)', acidity:'Кислотность',
-};
-const FEAT_LABELS = {
-  chlorophyll_loss:'Потеря хлорофилла',
-  vitamin_c_loss:'Потеря витамина C',
-  carotenoids_growth:'Рост каротиноидов',
-  phenolics_growth:'Рост фенольных',
-  flavonoids_growth:'Рост флавоноидов',
-  respiration_shift:'Сдвиг дыхания',
-  sugars_growth:'Рост сахаров',
-};
-const SENSORS = ['S1','S2','S3','S4','S5','S6','S7','S8'];
-const LINE_COLORS = ['#2D6A4F','#D62828','#2563EB','#D97706','#7C3AED','#0891B2','#059669','#EA580C','#65A30D','#9333EA'];
-const SENSOR_COLORS = ['#DC2626','#EA580C','#D97706','#65A30D','#059669','#0891B2','#2563EB','#7C3AED'];
-
-let charts = {}, lastData = null;
-
-function onSlider(v) {
-  document.getElementById('dayLabel').textContent = v;
-  document.getElementById('dayBadge').textContent = 'День ' + v;
-  // If we already have data — just update the status card without re-fetching
-  if (lastData) updateSelected(parseInt(v));
+// ════════════ NAV ════════════
+function show(v){
+  ['home','tomato','avocado','apple'].forEach(x=>{
+    document.getElementById('view-'+x).classList.toggle('active', x===v);
+    document.getElementById('nav-'+x).classList.toggle('active', x===v);
+  });
+  window.scrollTo(0,0);
+  if(v==='tomato' && !tomatoLoaded){calcTomato();tomatoLoaded=true;}
+  if(v==='avocado' && !avoLoaded){buildAvoPills();calcAvocado();avoLoaded=true;}
+  if(v==='apple' && !appleLoaded){calcApple();appleLoaded=true;}
 }
+let tomatoLoaded=false, avoLoaded=false, appleLoaded=false;
 
-async function calculate() {
-  const btn = document.getElementById('calcBtn');
-  btn.disabled = true; btn.textContent = 'Расчёт…';
-  try {
-    const selDay = parseInt(document.getElementById('daySlider').value);
-    const body = {
-      variety:          document.getElementById('variety').value,
-      greenhouse_temp:  parseFloat(document.getElementById('greenhouse').value),
-      dc_temp:          parseFloat(document.getElementById('dc').value),
-      transport_temp:   parseFloat(document.getElementById('transport').value),
-      store_temp:       parseFloat(document.getElementById('store').value),
-      selected_day:     selDay,
-    };
-    const resp = await fetch('/api/predict', {
-      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
-    });
-    const data = await resp.json();
-    if (!data.ok) { alert('Ошибка: ' + data.error); return; }
-    lastData = data;
-    renderAll(data);
-    document.getElementById('results').style.display = 'block';
-  } catch(e) { alert('Ошибка: ' + e.message); }
-  finally { btn.disabled=false; btn.textContent='Рассчитать'; }
+const CHEM_LABELS={chlorophyll:'Хлорофилл',carotenoids:'Каротиноиды',lycopene:'Ликопин',
+  vitamin_c:'Витамин C',phenolics:'Фенольные',flavonoids:'Флавоноиды',total_antioxidants:'ОАОА',
+  respiration:'Дыхание',sugars_brix:'Сахара',acidity:'Кислотность'};
+const ORG=['внешний вид','цвет','запах','вкус','консистенция'];
+const SENSORS=['S1','S2','S3','S4','S5','S6','S7','S8'];
+const CAT=['#0072B2','#D55E00','#009E73','#CC79A7'];
+let charts={}, tData=null;
+
+// ════════════ TOMATO ════════════
+function tSlide(v){
+  document.getElementById('t-daylabel').textContent=v;
+  document.getElementById('t-daybadge').textContent='День '+v;
+  if(tData) tShowDay(parseInt(v));
 }
-
-// Interpolate trajectory for an arbitrary day (client-side linear interpolation)
-function interpTrajectory(traj, day) {
-  const sorted = [...traj].sort((a,b)=>a.day-b.day);
-  if (day <= sorted[0].day) return sorted[0];
-  if (day >= sorted[sorted.length-1].day) return sorted[sorted.length-1];
-  for (let i=0; i<sorted.length-1; i++) {
-    const a = sorted[i], b = sorted[i+1];
-    if (day >= a.day && day <= b.day) {
-      const t = (day - a.day) / (b.day - a.day);
-      const lerp = (x,y) => x + (y-x)*t;
-      const lerpObj = (x,y) => Object.fromEntries(Object.keys(x).map(k=>[k, lerp(x[k],y[k])]));
-      return {
-        day, stage: stageLabel(day),
-        chemistry:  lerpObj(a.chemistry,  b.chemistry),
-        enose:      lerpObj(a.enose,      b.enose),
-        features:   lerpObj(a.features,   b.features),
-        quality: {
-          state:              t < 0.5 ? a.quality.state : b.quality.state,
-          recommendation:     t < 0.5 ? a.quality.recommendation : b.quality.recommendation,
-          used_shelf_pct:     lerp(a.quality.used_shelf_pct,    b.quality.used_shelf_pct),
-          vitamin_c_left_pct: lerp(a.quality.vitamin_c_left_pct,b.quality.vitamin_c_left_pct),
-          chlorophyll_left_pct:lerp(a.quality.chlorophyll_left_pct,b.quality.chlorophyll_left_pct),
-        },
-        shelf_life:  lerp(a.shelf_life,  b.shelf_life),
-        reliability: lerp(a.reliability, b.reliability),
-        metrics:     lerpObj(a.metrics,  b.metrics),
-        warnings:    t < 0.5 ? a.warnings : b.warnings,
-      };
-    }
-  }
-  return sorted[sorted.length-1];
+async function calcTomato(){
+  const body={variety:document.getElementById('t-variety').value,
+    greenhouse_temp:+document.getElementById('t-gh').value,
+    dc_temp:+document.getElementById('t-dc').value,
+    transport_temp:+document.getElementById('t-tr').value,
+    store_temp:+document.getElementById('t-st').value,
+    selected_day:+document.getElementById('t-slider').value};
+  const r=await fetch('/api/tomato/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json();
+  if(!d.ok){alert('Ошибка: '+d.error);return;}
+  tData=d; tRenderAll(d);
 }
-
-function stageLabel(day) {
-  if (day <= 0)  return 'Приёмка / РЦ';
-  if (day <= 4)  return 'Хранение на РЦ';
-  if (day <= 7)  return 'Транспортировка';
-  if (day <= 14) return 'Магазин (ранний)';
-  return 'Магазин (поздний)';
+function lerp(a,b,t){return a+(b-a)*t;}
+function tInterp(traj,day){
+  const s=[...traj].sort((a,b)=>a.day-b.day);
+  if(day<=s[0].day)return s[0]; if(day>=s[s.length-1].day)return s[s.length-1];
+  for(let i=0;i<s.length-1;i++){const a=s[i],b=s[i+1];
+    if(day>=a.day&&day<=b.day){const t=(day-a.day)/(b.day-a.day);
+      const lo=(x,y)=>Object.fromEntries(Object.keys(x).map(k=>[k,typeof x[k]==='number'?lerp(x[k],y[k],t):x[k]]));
+      return {day,chemistry:lo(a.chemistry,b.chemistry),enose:lo(a.enose,b.enose),
+        quality:t<.5?a.quality:b.quality,shelf_life:lerp(a.shelf_life,b.shelf_life,t),
+        reliability:lerp(a.reliability,b.reliability,t),
+        color:{a:lerp(a.color.a,b.color.a,t),note:(t<.5?a.color:b.color).note,regime:a.color.regime},
+        organoleptic:{params:lo(a.organoleptic.params,b.organoleptic.params),sum:lerp(a.organoleptic.sum,b.organoleptic.sum,t),regime:a.organoleptic.regime},
+        passport:t<.5?a.passport:b.passport,metrics:lo(a.metrics,b.metrics),warnings:t<.5?a.warnings:b.warnings};
+    }}
+  return s[s.length-1];
 }
-
-function updateSelected(day) {
-  const sel = interpTrajectory(lastData.trajectory, day);
-  renderStatus(sel);
-  updateRadar(sel);
+function tRenderAll(d){
+  destroy();
+  tRenderStatus(d.selected);
+  tChemChart(d.trajectory); tEnoseChart(d.trajectory); tColorChart(d.trajectory);
+  tRadar(d.selected); tSensors(d.selected);
+  tPassport(d.selected); tTraj(d.trajectory,d.selected.day);
+  tWarn(d.selected);
 }
-
-function renderAll(data) {
-  destroyCharts();
-  renderStatus(data.selected);
-  renderChemChart(data.trajectory);
-  renderEnoseChart(data.trajectory);
-  renderRadar(data.selected);
-  renderTrajTable(data.trajectory, data.selected.day);
-  renderChemFull(data.trajectory);
-  renderFeatFull(data.trajectory);
-  renderStress(data.selected);
-  renderWarnings(data.selected);
-}
-
-// ── Status card ──────────────────────────────────────────
-function renderStatus(sel) {
-  const q = sel.quality;
-  const pct = q.used_shelf_pct;
-  const card = document.getElementById('statusCard');
-  card.className = 'status' + (pct > 75 ? ' bad' : pct > 45 ? ' warn' : '');
-
-  const state = q.state.charAt(0).toUpperCase() + q.state.slice(1);
-  document.getElementById('statusText').textContent = state;
-  document.getElementById('recText').textContent   = q.recommendation;
-  document.getElementById('statusDay').textContent = sel.day + ' сут.';
-
-  // Badges
-  const rel = Math.round(sel.reliability);
-  document.getElementById('badges').innerHTML = `
-    <span class="bdg">Срок годности: ~${sel.shelf_life} сут.</span>
+function tShowDay(day){const sel=tInterp(tData.trajectory,day);tRenderStatus(sel);tPassport(sel);tWarn(sel);
+  if(charts.radar){charts.radar.data.datasets[0].data=ORG.map(p=>sel.organoleptic.params[p]);charts.radar.update();}
+  if(charts.sensors){charts.sensors.data.datasets[0].data=SENSORS.map(s=>sel.enose[s]);charts.sensors.update();}}
+function tRenderStatus(sel){
+  const q=sel.quality,pct=q.used_shelf_pct;
+  const card=document.getElementById('t-status');
+  card.className='status'+(pct>80?' bad':pct>55?' warn':'');
+  document.getElementById('t-state').textContent=q.state.charAt(0).toUpperCase()+q.state.slice(1);
+  document.getElementById('t-rec').textContent=q.recommendation;
+  const rel=Math.round(sel.reliability);
+  document.getElementById('t-badges').innerHTML=`
+    <span class="bdg">Срок: ~${sel.shelf_life} сут</span>
     <span class="bdg ${pct>65?'red':pct>45?'amber':''}">Использовано: ${pct.toFixed(0)}%</span>
     <span class="bdg ${rel<65?'red':rel<85?'amber':''}">Надёжность: ${rel}/100</span>
-    <span class="bdg ${q.vitamin_c_left_pct<40?'amber':''}">Витамин C: ${q.vitamin_c_left_pct.toFixed(0)}%</span>
-    <span class="bdg ${q.chlorophyll_left_pct<20?'red':q.chlorophyll_left_pct<50?'amber':''}">Хлорофилл: ${q.chlorophyll_left_pct.toFixed(0)}%</span>
-    <span class="bdg">Эфф. возраст: ${sel.metrics.effective_day} сут.</span>
-  `;
-
-  // Progress bar
-  const shelf = sel.shelf_life;
-  document.getElementById('barMid').textContent = `Выбрано: ${sel.day} сут.`;
-  document.getElementById('barEnd').textContent = `Срок: ~${shelf.toFixed(0)} сут.`;
-  const fillPct = Math.min(pct, 100);
-  const fill = document.getElementById('barFill');
-  fill.style.width = fillPct + '%';
-  fill.style.background = pct > 75 ? 'var(--red)' : pct > 45 ? 'var(--amber)' : 'var(--g2)';
-
-  renderStress(sel);
-  renderWarnings(sel);
-  updateTomato(sel);
+    <span class="bdg ${sel.color.a<0?'red':sel.color.a<8?'amber':''}">Цвет a*: ${sel.color.a.toFixed(1)}</span>
+    <span class="bdg">Органолептика: ${sel.organoleptic.sum.toFixed(1)}/25</span>`;
+  tIcon(pct, sel.color.a);
+}
+function tIcon(pct,a){
+  const body=document.getElementById('ti-body'),stem=document.getElementById('ti-stem'),
+    mouth=document.getElementById('ti-mouth'),icon=document.getElementById('t-icon'),lab=document.getElementById('t-iconlabel');
+  icon.style.transform='';
+  if(a<0){body.setAttribute('fill','#6B8E23');body.setAttribute('stroke','#556B2F');mouth.setAttribute('d','M42 66 Q50 60 58 66');lab.textContent='❄ Холод. повреждение';lab.style.color='var(--serious)';return;}
+  if(pct<=22){body.setAttribute('fill','#8BC34A');body.setAttribute('stroke','#558B2F');mouth.setAttribute('d','M40 60 Q50 72 60 60');lab.textContent='Свежий';lab.style.color='var(--good)';}
+  else if(pct<=55){body.setAttribute('fill','#E63946');body.setAttribute('stroke','#C1121F');mouth.setAttribute('d','M42 62 Q50 70 58 62');lab.textContent='Дозревание';lab.style.color='var(--avocado)';}
+  else if(pct<=80){body.setAttribute('fill','#C62828');body.setAttribute('stroke','#8E0000');mouth.setAttribute('d','M42 64 L58 64');lab.textContent='Зрелый';lab.style.color='var(--warn)';}
+  else if(pct<=95){body.setAttribute('fill','#8E0000');body.setAttribute('stroke','#5D0000');mouth.setAttribute('d','M42 66 Q50 60 58 66');icon.style.transform='scale(.95)';lab.textContent='Перезрелый';lab.style.color='var(--crit)';}
+  else{body.setAttribute('fill','#5D4037');body.setAttribute('stroke','#3E2723');mouth.setAttribute('d','M40 68 Q50 58 60 68');icon.style.transform='scale(.85) rotate(-5deg)';lab.textContent='Списание';lab.style.color='var(--crit)';}
+}
+function tChemChart(traj){
+  const days=traj.map(t=>'Д'+t.day);
+  const keys=['chlorophyll','vitamin_c','total_antioxidants','carotenoids'];
+  const base=traj[0].chemistry;
+  charts.chem=new Chart(document.getElementById('t-chem'),{type:'line',
+    data:{labels:days,datasets:keys.map((p,i)=>({label:CHEM_LABELS[p],
+      data:traj.map(t=>base[p]?+(t.chemistry[p]/base[p]*100).toFixed(1):null),
+      borderColor:CAT[i],backgroundColor:CAT[i]+'18',tension:.3,pointRadius:4,borderWidth:2,fill:false}))},
+    options:copts('%')});
+}
+function tEnoseChart(traj){
+  const days=traj.map(t=>'Д'+t.day);
+  charts.enose=new Chart(document.getElementById('t-enose'),{type:'line',
+    data:{labels:days,datasets:[{label:'e-nose индекс',data:traj.map(t=>t.enose.enose_index),
+      borderColor:'#0072B2',backgroundColor:'#0072B218',tension:.3,pointRadius:4,borderWidth:2.5,fill:true}]},
+    options:copts()});
+}
+function tColorChart(traj){
+  const days=traj.map(t=>'Д'+t.day);
+  charts.color=new Chart(document.getElementById('t-color'),{type:'line',
+    data:{labels:days,datasets:[{label:'a* (краснота)',data:traj.map(t=>t.color.a),
+      borderColor:'#D55E00',backgroundColor:'#D55E0018',tension:.3,pointRadius:5,borderWidth:2.5,fill:false,
+      segment:{borderColor:c=>c.p1.parsed.y<0?'#556B2F':'#D55E00'}}]},
+    options:{...copts(),plugins:{legend:{display:false},annotation:false}}});
+}
+function tRadar(sel){
+  charts.radar=new Chart(document.getElementById('t-radar'),{type:'radar',
+    data:{labels:ORG,datasets:[{label:'Балл',data:ORG.map(p=>sel.organoleptic.params[p]),
+      borderColor:'#D62828',backgroundColor:'rgba(214,40,40,.15)',borderWidth:2,pointRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{r:{beginAtZero:true,max:5,ticks:{stepSize:1,font:{size:9}}}}}});
+}
+function tSensors(sel){
+  charts.sensors=new Chart(document.getElementById('t-sensors'),{type:'radar',
+    data:{labels:SENSORS,datasets:[{label:'Сигнал',data:SENSORS.map(s=>sel.enose[s]),
+      borderColor:'#0072B2',backgroundColor:'rgba(0,114,178,.15)',borderWidth:2,pointRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{r:{beginAtZero:true,ticks:{font:{size:9}}}}}});
+}
+function copts(unit){return{responsive:true,maintainAspectRatio:false,
+  interaction:{mode:'index',intersect:false},
+  plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:11},color:'#6B7280'}},
+    tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.parsed.y+(unit||'')}}},
+  scales:{y:{beginAtZero:true,grid:{color:'#EEE'},ticks:{font:{size:11},color:'#6B7280'}},
+    x:{grid:{display:false},ticks:{font:{size:11},color:'#6B7280'}}}};}
+function tPassport(sel){
+  const p=sel.passport;
+  document.getElementById('t-passport').innerHTML=`
+    <tr><td style="font-weight:600">Этап</td><td>${p.stage}</td></tr>
+    <tr><td style="font-weight:600">Рекомендация</td><td>${p.action}</td></tr>
+    <tr><td>Использовано срока</td><td class="num">${p.used_pct}%</td></tr>
+    <tr><td>Осталось дней</td><td class="num">${p.days_left}</td></tr>
+    <tr><td>Витамин C</td><td class="num">${p.vitamin_c}</td></tr>
+    <tr><td>Сахара, Brix</td><td class="num">${p.sugar_brix}</td></tr>
+    <tr><td>Цвет a*</td><td class="num">${p.color_a.toFixed(2)}</td></tr>`;
+}
+function tTraj(traj,selDay){
+  let h=`<thead><tr><th>Сут</th><th>Состояние</th><th class=num>Эфф.возраст</th><th class=num>Хлороф.</th><th class=num>Вит C</th><th class=num>a*</th><th class=num>Органол.</th><th class=num>e-nose</th></tr></thead><tbody>`;
+  traj.forEach(t=>{h+=`<tr class="${t.day===selDay?'hl':''}"><td><b>${t.day}</b></td><td>${t.quality.state}</td>
+    <td class=num>${t.metrics.effective_day}</td><td class=num>${t.chemistry.chlorophyll.toFixed(3)}</td>
+    <td class=num>${t.chemistry.vitamin_c.toFixed(1)}</td><td class=num>${t.color.a.toFixed(1)}</td>
+    <td class=num>${t.organoleptic.sum.toFixed(1)}</td><td class=num>${t.enose.enose_index.toFixed(0)}</td></tr>`;});
+  document.getElementById('t-traj').innerHTML=h+'</tbody>';
+}
+function tWarn(sel){
+  const ws=[...new Set(sel.warnings)];
+  document.getElementById('t-warn').innerHTML=ws.length?
+    '<div class="card"><div class="card-title">Предупреждения</div>'+ws.map(w=>`<div class="warn-item">${w}</div>`).join('')+'</div>':'';
 }
 
-// ── Line chart: chemistry ─────────────────────────────────
-function renderChemChart(traj) {
-  const days  = traj.map(t => 'День ' + t.day);
-  const keys  = ['chlorophyll','vitamin_c','total_antioxidants','carotenoids'];
-  charts.chem = new Chart(document.getElementById('chemChart'), {
-    type:'line',
-    data:{
-      labels: days,
-      datasets: keys.map((p,i)=>({
-        label: CHEM_LABELS[p],
-        data:  traj.map(t => t.chemistry[p]),
-        borderColor: LINE_COLORS[i], backgroundColor: LINE_COLORS[i]+'18',
-        tension:.3, pointRadius:4, borderWidth:2, fill:false,
-      }))
-    },
-    options:chartOpts(),
-  });
+// ════════════ AVOCADO ════════════
+const AVO_TEMPS=[8,12,15,20,27]; let avoTemp=12;
+function buildAvoPills(){
+  document.getElementById('a-pills').innerHTML=AVO_TEMPS.map(t=>
+    `<div class="pill ${t===avoTemp?'active':''}" onclick="setAvoTemp(${t})">+${t}°C</div>`).join('');
+}
+function setAvoTemp(t){avoTemp=t;buildAvoPills();calcAvocado();}
+async function calcAvocado(){
+  const firm=document.getElementById('a-firm').value;
+  const r=await fetch('/api/avocado/lookup',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({temp:avoTemp,firmness:firm})});
+  const d=await r.json(); if(!d.ok){alert(d.error);return;}
+  document.getElementById('a-title').textContent=`Хранение при +${d.temp}°C`;
+  document.getElementById('a-sub').textContent=`Эксперимент: ${d.exp_days} сут`;
+  document.getElementById('a-days').textContent=d.opt_days+' сут';
+  const cur=d.current_stage;
+  document.getElementById('a-voc').innerHTML=cur?
+    `<span class="bdg">Текущая стадия: ${cur.stage} (${cur.score} балла)</span>
+     <span class="bdg">Brix ${cur.brix}%</span><span class="bdg">Плотность ${cur.firmness} кг/см²</span>`
+     +(d.voc?`<span class="bdg amber">Летучие (МАГ-8): зел. ${d.voc.green} → спел. ${d.voc.ripe} → перезр. ${d.voc.overripe}</span>`:''):'';
+  // markers table
+  let h=`<thead><tr><th>Маркер</th><th class=num>РЦ 8°C</th><th class=num>Магазин 20°C</th><th class=num>Критич.</th></tr></thead><tbody>`;
+  d.markers.forEach(m=>{h+=`<tr><td>${m.name}</td><td class=num>${m.rc}</td><td class=num>${m.shop}</td><td class=num>${m.crit}</td></tr>`;});
+  document.getElementById('a-markers').innerHTML=h+'</tbody>';
+  // ripening scale
+  const hue=s=>['#8BC34A','#7CB342','#689F38','#558B2F','#33691E','#2E5D1A','#795548','#5D4037'][s-1];
+  document.getElementById('a-scale').innerHTML=d.scale.map(s=>{
+    const isCur=cur&&s.stage===cur.stage;
+    return `<div class="scale-row ${isCur?'cur':''}">
+      <div class="scale-badge" style="background:${hue(s.stage)}">${s.stage}</div>
+      <div><div class="scale-desc">${s.desc}</div>
+      <div class="scale-meta">Brix ${s.brix}% · плотность ${s.firmness} кг/см² · балл ${s.score}</div></div></div>`;
+  }).join('');
 }
 
-// ── Line chart: e-nose ────────────────────────────────────
-function renderEnoseChart(traj) {
-  const days = traj.map(t => 'День ' + t.day);
-  charts.enose = new Chart(document.getElementById('enoseChart'), {
-    type:'line',
-    data:{
-      labels: days,
-      datasets: SENSORS.map((s,i)=>({
-        label: s,
-        data:  traj.map(t => t.enose[s]),
-        borderColor: SENSOR_COLORS[i], tension:.3,
-        pointRadius:3, borderWidth:1.8, fill:false,
-      }))
-    },
-    options:chartOpts(true),
-  });
+// ════════════ APPLE ════════════
+async function calcApple(){
+  const body={T:+document.getElementById('ap-T').value,brix:+document.getElementById('ap-brix').value,
+    isi:+document.getElementById('ap-isi').value,acidity:document.getElementById('ap-acid').value||null};
+  const r=await fetch('/api/apple/indices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json(); if(!d.ok){alert('Ошибка: '+d.error);return;}
+  const idx=[['Штрайф',d.streif,'T / (СРВ·ЙКП)'],['Ягер',d.jaeger,'T·(8−ЙКП)/СРВ'],
+    ['FARS',d.fars,'T·A/(СРВ·ЙКП)'],['Митин',d.mitin,'СРВ·ЙКП/T']];
+  document.getElementById('ap-indices').innerHTML=idx.map(([n,v,f])=>
+    `<div class="idx-card"><div class="name">${n}</div><div class="val">${v!==null?v:'—'}</div><div class="form">${f}</div></div>`).join('');
+  document.getElementById('ap-verdict').textContent='Вердикт: '+d.verdict;
+  document.getElementById('ap-stages').innerHTML='<thead><tr><th>Этап товародвижения</th><th class=num>Индекс Штрайфа</th></tr></thead><tbody>'
+    +d.streif_stages.map(s=>`<tr><td>${s[0]}</td><td class=num>${s[1]}</td></tr>`).join('')+'</tbody>';
 }
 
-function chartOpts(small=false) {
-  return {
-    responsive:true, maintainAspectRatio:false,
-    plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},
-    scales:{
-      y:{beginAtZero:true, grid:{color:'#EBEBEB'}, ticks:{font:{size:11}}},
-      x:{grid:{display:false}, ticks:{font:{size:11}}},
-    }
-  };
-}
-
-// ── Radar: sensor profile for selected day ────────────────
-function renderRadar(sel) {
-  charts.radar = new Chart(document.getElementById('radarChart'), {
-    type:'radar',
-    data:{
-      labels: SENSORS,
-      datasets:[{
-        label:'Выбранный день',
-        data: SENSORS.map(s=>sel.enose[s]),
-        borderColor:'#2D6A4F', backgroundColor:'rgba(45,106,79,.15)', borderWidth:2, pointRadius:3,
-      }]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},
-      scales:{r:{beginAtZero:true, ticks:{font:{size:10}}}},
-    }
-  });
-}
-
-function updateRadar(sel) {
-  if (!charts.radar) return;
-  charts.radar.data.datasets[0].data = SENSORS.map(s => sel.enose[s]);
-  charts.radar.update();
-}
-
-// ── Trajectory table ──────────────────────────────────────
-function renderTrajTable(traj, selDay) {
-  let html = `<thead><tr>
-    <th>Сутки</th><th>Этап</th><th>Состояние</th>
-    <th class=num>Эфф. возраст</th>
-    <th class=num>Хлорофилл</th><th class=num>Витамин C</th>
-    <th class=num>ОАОА</th><th class=num>E-nose idx</th>
-    <th class=num>% срока</th><th class=num>Надёжность</th>
-  </tr></thead><tbody>`;
-
-  traj.forEach(t => {
-    const hl = t.day === selDay ? ' class=hl' : '';
-    const mark = t.day === selDay ? ' ◀' : '';
-    html += `<tr${hl}>
-      <td><strong>${t.day}${mark}</strong></td>
-      <td><span class="stg ${stgClass(t.stage)}">${t.stage}</span></td>
-      <td>${t.quality.state}</td>
-      <td class=num>${t.metrics.effective_day}</td>
-      <td class=num>${t.chemistry.chlorophyll.toFixed(4)}</td>
-      <td class=num>${t.chemistry.vitamin_c.toFixed(2)}</td>
-      <td class=num>${t.chemistry.total_antioxidants.toFixed(2)}</td>
-      <td class=num>${t.enose.enose_index.toFixed(1)}</td>
-      <td class=num><span style="color:${pctColor(t.quality.used_shelf_pct)}">${t.quality.used_shelf_pct.toFixed(0)}%</span></td>
-      <td class=num>${Math.round(t.reliability)}</td>
-    </tr>`;
-  });
-  html += '</tbody>';
-  document.getElementById('traj').innerHTML = html;
-}
-
-// ── Full chemistry table ──────────────────────────────────
-function renderChemFull(traj) {
-  const keys = Object.keys(CHEM_LABELS);
-  let html = '<thead><tr><th>Показатель</th>' +
-    traj.map(t=>`<th class=num>День ${t.day}</th>`).join('') + '</tr></thead><tbody>';
-  keys.forEach(k => {
-    html += `<tr><td>${CHEM_LABELS[k]}</td>`;
-    traj.forEach(t => {
-      const v = t.chemistry[k];
-      html += `<td class=num>${v!==undefined ? v.toFixed(3) : '—'}</td>`;
-    });
-    html += '</tr>';
-  });
-  html += '</tbody>';
-  document.getElementById('chemFull').innerHTML = html;
-}
-
-// ── Features table ────────────────────────────────────────
-function renderFeatFull(traj) {
-  const keys = Object.keys(FEAT_LABELS);
-  let html = '<thead><tr><th>Признак (% от дня 0)</th>' +
-    traj.map(t=>`<th class=num>День ${t.day}</th>`).join('') + '</tr></thead><tbody>';
-  keys.forEach(k => {
-    html += `<tr><td>${FEAT_LABELS[k]}</td>`;
-    traj.forEach(t => {
-      const v = t.features[k];
-      html += `<td class=num>${v!==undefined ? v.toFixed(1)+'%' : '—'}</td>`;
-    });
-    html += '</tr>';
-  });
-  html += '</tbody>';
-  document.getElementById('featFull').innerHTML = html;
-}
-
-// ── Stress factors ────────────────────────────────────────
-function renderStress(sel) {
-  const m = sel.metrics;
-  const rows = [
-    ['Средняя скорость старения (Q10)', m.weighted_rate.toFixed(3),
-     m.weighted_rate > 1.3 ? '⚠ Ускоренное' : '✓ Норма'],
-    ['Тепловой стресс', m.heat.toFixed(3),
-     m.heat > 0.5 ? '⚠ Высокий' : m.heat > 0.2 ? '~ Умеренный' : '✓ Низкий'],
-    ['Холодовой стресс', m.cold.toFixed(3),
-     m.cold > 0.5 ? '⚠ Высокий' : m.cold > 0.2 ? '~ Умеренный' : '✓ Низкий'],
-    ['Стресс перепадов T°', m.jump.toFixed(3),
-     m.jump > 0.4 ? '⚠ Критичный' : m.jump > 0.2 ? '~ Есть' : '✓ Нет'],
-    ['Эффективный возраст, сут.', m.effective_day.toFixed(2), ''],
-  ];
-  let html = '<thead><tr><th>Коэффициент</th><th class=num>Значение</th><th>Оценка</th></tr></thead><tbody>';
-  rows.forEach(([n,v,c]) => {
-    html += `<tr><td>${n}</td><td class=num>${v}</td><td>${c}</td></tr>`;
-  });
-  html += '</tbody>';
-  document.getElementById('stressTable').innerHTML = html;
-}
-
-// ── Warnings ──────────────────────────────────────────────
-function renderWarnings(sel) {
-  const ws = [...new Set(sel.warnings)];
-  const block = document.getElementById('warnBlock');
-  if (!ws.length) {
-    block.innerHTML = '<div class="wi ok">Температуры близки к экспериментальным режимам. Прогноз надёжен.</div>';
-  } else {
-    block.innerHTML = ws.map(w => `<div class="wi">${w}</div>`).join('');
-  }
-}
-
-// ── Tomato icon animation ─────────────────────────────────
-function updateTomato(sel) {
-  const pct = sel.quality.used_shelf_pct;
-  const body = document.getElementById('tBody');
-  const stem = document.getElementById('tStem');
-  const mouth = document.getElementById('tMouth');
-  const wrinkles = document.getElementById('tWrinkles');
-  const label = document.getElementById('tomatoLabel');
-  const icon = document.getElementById('tomatoIcon');
-
-  // Reset
-  icon.style.transform = '';
-  wrinkles.setAttribute('opacity', '0');
-
-  if (pct <= 20) {
-    // Fresh — bright green-red, big smile
-    body.setAttribute('fill', '#8BC34A');
-    body.setAttribute('stroke', '#558B2F');
-    stem.setAttribute('stroke', '#33691E');
-    mouth.setAttribute('d', 'M40 60 Q50 72 60 60');
-    label.textContent = '🌱 Свежий';
-    label.style.color = '#2D6A4F';
-  } else if (pct <= 45) {
-    // Ripening — classic red, smile
-    body.setAttribute('fill', '#E63946');
-    body.setAttribute('stroke', '#C1121F');
-    stem.setAttribute('stroke', '#2D6A4F');
-    mouth.setAttribute('d', 'M42 62 Q50 70 58 62');
-    label.textContent = '🍅 Дозревание';
-    label.style.color = '#2D6A4F';
-  } else if (pct <= 65) {
-    // Late sale — darker red, neutral
-    body.setAttribute('fill', '#C62828');
-    body.setAttribute('stroke', '#8E0000');
-    stem.setAttribute('stroke', '#5D4037');
-    mouth.setAttribute('d', 'M42 64 L58 64');
-    label.textContent = '🍅 Зрелый';
-    label.style.color = '#D97706';
-  } else if (pct <= 85) {
-    // Overripe — dark, frown, wrinkles appear
-    body.setAttribute('fill', '#8E0000');
-    body.setAttribute('stroke', '#5D0000');
-    stem.setAttribute('stroke', '#795548');
-    mouth.setAttribute('d', 'M42 66 Q50 60 58 66');
-    wrinkles.setAttribute('opacity', '0.6');
-    icon.style.transform = 'scale(0.95)';
-    label.textContent = '😟 Перезрелый';
-    label.style.color = '#C9303A';
-  } else {
-    // Spoiled — brown, sad, shrunken
-    body.setAttribute('fill', '#5D4037');
-    body.setAttribute('stroke', '#3E2723');
-    stem.setAttribute('stroke', '#795548');
-    mouth.setAttribute('d', 'M40 68 Q50 58 60 68');
-    wrinkles.setAttribute('opacity', '1');
-    icon.style.transform = 'scale(0.85) rotate(-5deg)';
-    label.textContent = '💀 Не годен';
-    label.style.color = '#C9303A';
-  }
-}
-
-// ── Helpers ───────────────────────────────────────────────
-function destroyCharts() {
-  Object.values(charts).forEach(c => c.destroy());
-  charts = {};
-}
-
-function stgClass(s) {
-  if (s.includes('РЦ'))          return 'stg-rc';
-  if (s.includes('Транспорт'))   return 'stg-tr';
-  return 'stg-sh';
-}
-
-function pctColor(pct) {
-  if (pct > 75) return 'var(--red)';
-  if (pct > 45) return 'var(--amber)';
-  return 'var(--g)';
-}
-
-// ── Auto-calculate on load ────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => setTimeout(calculate, 200));
-
-// Slider live-updates status card without re-fetching
-document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('daySlider').addEventListener('input', function() {
-    onSlider(this.value);
-  });
-});
+function destroy(){Object.values(charts).forEach(c=>c.destroy());charts={};}
 </script>
 </body>
 </html>

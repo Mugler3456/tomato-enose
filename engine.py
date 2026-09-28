@@ -371,6 +371,9 @@ def predict(variety, greenhouse_temp, dc_temp, transport_temp, store_temp, day):
     shelf = estimate_shelf_life(variety, m)
     qual = quality_state(variety, day, shelf, chem)
     rel = reliability(g, dc, tr, st, day)
+    color = estimate_color_a(variety, dc, tr, day)
+    organo = estimate_organoleptic(variety, dc, tr, day)
+    passport = quality_passport(variety, day, shelf, chem, color["a"])
 
     return {
         "input": {"variety": variety, "g": g, "dc": dc, "tr": tr, "st": st, "day": day},
@@ -381,6 +384,9 @@ def predict(variety, greenhouse_temp, dc_temp, transport_temp, store_temp, day):
         "shelf_life": shelf,
         "quality": qual,
         "reliability": rel,
+        "color": color,
+        "organoleptic": organo,
+        "passport": passport,
         "warnings": warnings_for(g, dc, tr, st, day, rel, m),
     }
 
@@ -542,3 +548,124 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\nНепредвиденная ошибка: {e}", file=sys.stderr)
         raise SystemExit(2)
+
+
+# ============================================================
+# РАСШИРЕНИЕ: цвет a*, органолептика, паспорт качества
+# (реально измеренные данные, опыты 1 и 3)
+# ============================================================
+
+# Цвет a* (координата CIE Lab, зелёный<0 ... >0 красный), опыт 3, дни 0/7/14
+# По каждому режиму (T_РЦ, T_транспорт) — измеренная кривая.
+BASE_COLOR_A = {
+    "Фламенко": {
+        (4, 4):  {0: 9.1, 7: 6.93,  14: -0.97},
+        (8, 4):  {0: 9.1, 7: 11.33, 14: 8.37},
+        (8, 8):  {0: 9.1, 7: 11.87, 14: 13.07},
+        (12, 4): {0: 9.1, 7: 11.57, 14: 13.4},
+        (12, 8): {0: 9.1, 7: 10.4,  14: 10.3},
+    },
+    "Черри": {
+        (4, 4):  {0: 16.2, 7: 13.33, 14: -2.03},
+        (8, 4):  {0: 16.2, 7: 16.1,  14: 15.97},
+        (8, 8):  {0: 16.2, 7: 14.33, 14: 14.37},
+        (12, 4): {0: 16.2, 7: 14.33, 14: 12.5},
+        (12, 8): {0: 16.2, 7: 14.33, 14: 14.45},
+    },
+}
+
+# Органолептика (5-балльная), опыт 1 (КликСенс): старт (день 0) и финал.
+# [внешний вид, цвет, запах, вкус, консистенция]
+ORG_PARAMS = ["внешний вид", "цвет", "запах", "вкус", "консистенция"]
+BASE_ORG = {
+    "Фламенко": {
+        (5, 5):  {"start": (0, [3.5, 3.9, 3.4, 4.5, 4.4]), "final": (14, [4.6, 4.6, 4.8, 4.7, 4.8])},
+        (8, 4):  {"start": (0, [4.5, 4.6, 4.8, 4.8, 4.7]), "final": (21, [4.5, 4.6, 4.8, 4.8, 4.7])},
+        (8, 8):  {"start": (0, [4.6, 4.6, 4.7, 4.8, 4.7]), "final": (21, [4.6, 4.6, 4.7, 4.8, 4.7])},
+        (12, 4): {"start": (0, [3.8, 4.2, 3.9, 4.3, 4.1]), "final": (17, [4.3, 4.4, 4.5, 4.7, 4.5])},
+        (12, 8): {"start": (0, [3.7, 4.1, 3.7, 3.4, 4.0]), "final": (17, [4.4, 4.5, 4.4, 4.4, 4.6])},
+    },
+    "Черри": {
+        (5, 5):  {"start": (0, [4.5, 4.2, 4.5, 4.7, 4.8]), "final": (21, [4.5, 4.2, 4.5, 4.7, 4.8])},
+        (8, 4):  {"start": (0, [4.7, 4.7, 4.8, 4.8, 4.9]), "final": (21, [4.7, 4.7, 4.8, 4.8, 4.9])},
+        (8, 8):  {"start": (0, [4.8, 4.9, 4.8, 4.8, 4.9]), "final": (21, [4.8, 4.9, 4.8, 4.8, 4.9])},
+        (12, 4): {"start": (0, [4.5, 4.4, 4.5, 4.6, 4.6]), "final": (17, [4.6, 4.6, 4.5, 4.7, 4.7])},
+        (12, 8): {"start": (0, [4.5, 4.4, 4.5, 4.6, 4.6]), "final": (17, [4.6, 4.6, 4.5, 4.7, 4.7])},
+    },
+}
+
+
+def nearest_regime(dc, tr, keys):
+    """Ближайший измеренный режим (T_РЦ, T_транспорт) по евклидову расстоянию."""
+    return min(keys, key=lambda k: (k[0] - dc) ** 2 + (k[1] - tr) ** 2)
+
+
+def interpolate_signed(curve, day):
+    """Интерполяция без обрезки отрицательных значений (для цвета a*)."""
+    pts = sorted((float(k), float(v)) for k, v in curve.items())
+    if day <= pts[0][0]:
+        return pts[0][1]
+    if day >= pts[-1][0]:
+        d1, v1 = pts[-2]
+        d2, v2 = pts[-1]
+        return v2 + (v2 - v1) / (d2 - d1) * (day - d2)
+    for (d1, v1), (d2, v2) in zip(pts, pts[1:]):
+        if d1 <= day <= d2:
+            return v1 + (v2 - v1) * ((day - d1) / (d2 - d1))
+    return pts[-1][1]
+
+
+def estimate_color_a(variety, dc, tr, day):
+    """Цвет a* (краснота) на календарный день по ближайшему измеренному режиму."""
+    table = BASE_COLOR_A[variety]
+    key = nearest_regime(dc, tr, table.keys())
+    a = interpolate_signed(table[key], day)
+    # интерпретация
+    if a < 0:
+        note = "потеря окраски (холодовое повреждение)"
+    elif a < 8:
+        note = "недозрелый / зеленоватый оттенок"
+    elif a < 13:
+        note = "нормальная спелая окраска"
+    else:
+        note = "насыщенно-красный (полная/переспелая окраска)"
+    return {"a": round(a, 2), "regime": f"{key[0]}/{key[1]}", "note": note}
+
+
+def estimate_organoleptic(variety, dc, tr, day):
+    """Органолептика: линейная интерполяция старт→финал по ближайшему режиму."""
+    table = BASE_ORG[variety]
+    key = nearest_regime(dc, tr, table.keys())
+    d0, v0 = table[key]["start"]
+    d1, v1 = table[key]["final"]
+    t = 0.0 if d1 == d0 else clamp((day - d0) / (d1 - d0), 0.0, 1.15)
+    vals = [round(a + (b - a) * t, 2) for a, b in zip(v0, v1)]
+    return {
+        "params": dict(zip(ORG_PARAMS, vals)),
+        "sum": round(sum(vals), 1),
+        "regime": f"{key[0]}/{key[1]}",
+    }
+
+
+def quality_passport(variety, day, shelf_life, chem, color_a):
+    """Паспорт качества: этап товародвижения → рекомендация (по образцу авокадо-НИР)."""
+    ratio = day / shelf_life if shelf_life else 1.0
+    if ratio <= 0.22:
+        stage, action = "Приёмка / РЦ", "закладка на хранение, полный срок реализации"
+    elif ratio <= 0.55:
+        stage, action = "Хранение на РЦ → отгрузка", "отгрузка в торговую сеть, оптимальное окно"
+    elif ratio <= 0.80:
+        stage, action = "Торговый зал", "реализация в приоритете, не задерживать"
+    elif ratio <= 0.95:
+        stage, action = "Торговый зал (поздний)", "уценка / ускоренная реализация"
+    else:
+        stage, action = "Списание / переработка", "для продажи непригоден"
+    return {
+        "stage": stage,
+        "action": action,
+        "used_pct": round(ratio * 100, 1),
+        "days_left": round(max(shelf_life - day, 0), 1),
+        "vitamin_c": round(chem["vitamin_c"], 2),
+        "sugar_brix": round(chem["sugars_brix"], 2),
+        "color_a": color_a,
+    }
